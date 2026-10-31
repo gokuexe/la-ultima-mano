@@ -176,6 +176,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  game_core:
+    dependency: "direct main"
+    description:
+      path: "packages/game_core"
+      relative: true
+    source: path
+    version: "0.1.0"
   hooks:
     dependency: transitive
     description:
@@ -224,6 +231,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  la_ultima_mano_server:
+    dependency: "direct dev"
+    description:
+      path: server
+      relative: true
+    source: path
+    version: "0.1.0"
   leak_tracker:
     dependency: transitive
     description:

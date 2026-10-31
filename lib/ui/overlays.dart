@@ -183,12 +183,14 @@ class EndOverlay extends StatefulWidget {
   final String winner;
   final bool youWon;
   final VoidCallback onAgain;
+  final String againLabel;
 
   const EndOverlay({
     super.key,
     required this.winner,
     required this.youWon,
     required this.onAgain,
+    this.againLabel = 'Volver a despertar',
   });
 
   @override
@@ -253,8 +255,8 @@ class _EndOverlayState extends State<EndOverlay>
                         color: SS.mana,
                         borderRadius: BorderRadius.zero,
                       ),
-                      child: const Text(
-                        'Volver a despertar',
+                      child: Text(
+                        widget.againLabel,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,

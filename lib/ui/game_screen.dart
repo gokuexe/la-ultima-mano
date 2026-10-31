@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../engine.dart';
+import '../dialogue.dart';
+import 'dialogue_box.dart';
 import '../game_config.dart';
 import '../model.dart';
 import '../sfx.dart';
@@ -14,18 +16,22 @@ import 'pile.dart';
 
 class GameScreen extends StatefulWidget {
   final GameRules rules;
+  final GameEngine? session;
 
-  const GameScreen({super.key, this.rules = const GameRules()});
+  const GameScreen({super.key, this.rules = const GameRules(), this.session});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
-  late final GameEngine engine = GameEngine(rules: widget.rules);
+  late final GameEngine engine =
+      widget.session ?? GameEngine(rules: widget.rules);
 
   final List<PlayedEntry> _pile = [];
   int _seq = 0;
+  final DialogueDirector _dialogue = DialogueDirector();
+  DialogueLine _line = DialogueDirector.opening;
   final ScrollController _handScroll = ScrollController();
 
   late final AnimationController _singFlash = AnimationController(
@@ -47,6 +53,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleFx(Fx fx) {
+    final actor = fx.actorName ??
+        (fx.playerId == null ? '' : engine.players[fx.playerId!].name);
+    final line = _dialogue.react(fx, widget.session == null ? actor : '');
+    if (line != null && mounted) setState(() => _line = line);
     switch (fx.kind) {
       case FxKind.play:
         final id = fx.cardId;
@@ -114,10 +124,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _restart() {
+    if (widget.session != null) {
+      Navigator.of(context).pop();
+      return;
+    }
     Sfx.i.tap();
     setState(() {
       _pile.clear();
       _seq = 0;
+      _line = DialogueDirector.opening;
     });
     engine.newGame();
   }
@@ -156,8 +171,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               if (engine.winner != null)
                 EndOverlay(
                   winner: engine.winner!,
-                  youWon: engine.winner == 'Vos',
+                  youWon: engine.winner == engine.me.name,
                   onAgain: _restart,
+                  againLabel: widget.session == null
+                      ? 'Volver a despertar'
+                      : 'Salir de la sala',
                 ),
             ],
           ),
@@ -178,7 +196,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           _header(),
           const SizedBox(height: 10),
           _rivals(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          DialogueBox(line: _line),
+          const SizedBox(height: 8),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -226,7 +246,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Text(
                   engine.winner != null
                       ? 'Partida terminada'
-                      : 'Turno de ${engine.current.name}',
+                      : engine.statusMessage ??
+                          'Turno de ${engine.current.name}',
                   key: ValueKey('${engine.turn}-${engine.winner}'),
                   style: SS.sub.copyWith(
                     color: engine.myTurn ? SS.win : SS.mute,
@@ -237,6 +258,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Text('Modo ${engine.rules.label}', style: SS.sub),
             ],
           ),
+        ),
+        IconButton(
+          tooltip: 'Salir de la mesa',
+          icon: const Icon(Icons.exit_to_app, color: SS.mute, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         IconButton(
           onPressed: () => setState(() => Sfx.i.muted = !Sfx.i.muted),

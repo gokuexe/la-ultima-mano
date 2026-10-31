@@ -1,0 +1,6 @@
+name: game_core
+description: Reglas compartidas de La Última Mano, sin dependencias de Flutter.
+publish_to: none
+version: 0.1.0
+environment:
+  sdk: '>=3.4.0 <4.0.0'

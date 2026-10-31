@@ -8,6 +8,7 @@ import 'ui/pixel_art.dart';
 import 'sfx.dart';
 import 'theme.dart';
 import 'ui/game_screen.dart';
+import 'ui/online_lobby.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -242,7 +243,14 @@ class _TitleScreenState extends State<TitleScreen>
                       child: const Text('SENTARSE A LA MESA',
                           style: TextStyle(fontSize: 19, letterSpacing: 2)),
                     ),
-                    const SizedBox(height: 18),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const OnlineLobbyScreen())),
+                      child: const Text('JUGAR ONLINE · SALA PRIVADA',
+                          style: TextStyle(color: SS.azulUp)),
+                    ),
+                    const SizedBox(height: 10),
                     const Text('Tres desconocidos. Una salida. Ningún reloj.',
                         textAlign: TextAlign.center, style: SS.sub),
                   ]),

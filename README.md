@@ -56,3 +56,42 @@ La campaña, la progresión persistente y el rediseño sonoro están pendientes.
 No se ha añadido una licencia general nueva al código heredado: el repositorio
 original consultado no publica un archivo de licencia. La licencia de la fuente
 se mantiene por separado.
+
+## Multijugador privado (prototipo)
+
+La opción **Jugar online · Sala privada** permite crear una sala con código de
+seis caracteres. De 2 a 4 personas comparten una partida; los lugares vacíos
+se completan con bots. No requiere cuentas. El anfitrión elige el modo y
+comienza cuando hay al menos dos personas.
+
+El servidor valida las jugadas y envía a cada cliente solo su mano y los
+recuerdos que puede conocer. Las respuestas tienen plazo y se validan para
+el jugador al que pertenecen. Los diálogos son texto narrativo local, no un
+chat escrito por los jugadores.
+
+Para iniciar el servidor con el SDK de Dart:
+
+```bash
+cd server
+dart pub get
+dart run bin/server.dart
+```
+
+La dirección por defecto es `ws://127.0.0.1:8080/ws`. Para probar entre dos
+notebooks de la misma red, el anfitrión puede escuchar en la red local:
+
+```bash
+HOST=0.0.0.0 PORT=8080 dart run bin/server.dart
+```
+
+En ese caso, ambos clientes usan `ws://IP-DEL-ANFITRION:8080/ws`, además del
+mismo código de sala. El servidor solo necesita Dart para ejecutarse; su
+motor no importa Flutter. También puede compilarse desde `server/` con
+`dart compile exe bin/server.dart`. Las reglas compartidas están en
+`packages/game_core/`.
+
+El prototipo no está alojado públicamente. Para jugar por Internet hace falta
+un servidor accesible y un proxy TLS que ofrezca `wss://`. No se incluyen
+reconexión, persistencia, migración del anfitrión ni moderación. Una desconexión
+termina la sala para todos. Las salas y los nombres se mantienen en memoria.
+El código de sala sirve para invitar; no sustituye una contraseña de cuenta.
