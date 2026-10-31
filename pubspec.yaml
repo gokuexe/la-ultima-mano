@@ -1,0 +1,28 @@
+name: la_ultima_mano
+description: La Última Mano - juego de cartas de terror psicológico, recuerdos y paranoia.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  audioplayers: ^6.8.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/audio/
+    - assets/art/
+
+  fonts:
+    - family: Pixelify
+      fonts:
+        - asset: assets/fonts/PixelifySans.ttf

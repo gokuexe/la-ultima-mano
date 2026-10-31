@@ -1,0 +1,70 @@
+name: La Última Mano · Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # ubuntu-latest (24.04) enlaza símbolos de GLib 2.80+ que no existen en 22.04.
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: Dependencias del escritorio Linux
+        run: |
+          sudo apt-get update
+          # ubuntu-22.04 trae libunwind-*-dev de LLVM, que choca con el
+          # libunwind-dev que pide libgstreamer1.0-dev ("held broken packages").
+          conflicting=$(dpkg-query -W -f='${db:Status-Status} ${Package}\n' \
+            'libunwind-*-dev' 2>/dev/null | awk '$1 == "installed" { print $2 }' || true)
+          if [ -n "$conflicting" ]; then
+            echo "Removing conflicting: $conflicting"
+            sudo apt-get remove -y $conflicting
+          fi
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev libblkid-dev liblzma-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+
+      - name: Preparar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Habilitar escritorio
+        run: flutter config --enable-linux-desktop
+
+      - name: Generar la carpeta de Linux
+        run: flutter create . --platforms=linux --project-name la_ultima_mano
+
+      - name: Abrir con proporción de celular, no de escritorio
+        run: |
+          sed -i 's/gtk_window_set_default_size(window, 1280, 720)/gtk_window_set_default_size(window, 520, 900)/' linux/runner/my_application.cc
+
+      - name: Bajar dependencias
+        run: flutter pub get
+
+      - name: Ejecutar pruebas
+        run: flutter test
+
+      - name: Compilar
+        run: flutter build linux --release
+
+      - name: Empaquetar en un tar.gz
+        run: |
+          cd build/linux/x64/release
+          tar -czf ../../../../LaUltimaMano-Linux.tar.gz bundle
+
+      - name: Guardar el tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: la-ultima-mano-linux
+          path: LaUltimaMano-Linux.tar.gz
+

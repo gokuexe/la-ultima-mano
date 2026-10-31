@@ -30,7 +30,8 @@ flutter build linux --release
 ```
 
 Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliotecas.
-Los workflows de GitHub Actions usan nombres y paquetes propios de La Última Mano.
+El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
+releases automáticamente.
 
 ## Reglas
 
