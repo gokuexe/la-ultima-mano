@@ -20,10 +20,17 @@ class _Match {
   final RoomServer server;
   final OnlineConnection host;
   final OnlineConnection guest;
+  bool _guestLeft = false;
   _Match(this.server, this.host, this.guest);
+  void leaveGuest() {
+    if (_guestLeft) return;
+    _guestLeft = true;
+    guest.dispose();
+  }
+
   Future<void> close() async {
     host.dispose();
-    guest.dispose();
+    leaveGuest();
     await server.close();
   }
 }
@@ -194,5 +201,15 @@ void main() {
     expect(host.me.red, 9);
     expect(guest.me.blue, 3);
     expect(guest.me.mana, 1);
+  });
+  test('disconnect reason replaces an earlier rejected command', () async {
+    final match = await _openMatch(arrange: (_) {});
+    match.host.send({'type': 'play', 'card': 'not-a-card'});
+    await waitFor(() => match.host.error != null);
+    expect(match.host.error, contains('carta'));
+    match.leaveGuest();
+    await waitFor(() => !match.host.connected);
+    expect(match.host.error, contains('desconectó'));
+    expect(match.host.game!.statusMessage, match.host.error);
   });
 }

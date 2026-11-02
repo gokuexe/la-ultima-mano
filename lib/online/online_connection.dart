@@ -67,10 +67,11 @@ class OnlineConnection extends ChangeNotifier {
   }
 
   void _lost(String message) {
-    if (_disposed) return;
+    if (_disposed || !connected) return;
     connected = false;
-    error ??= message;
-    game?.disconnected(error!);
+    error = message;
+    unawaited(_socket?.close() ?? Future<void>.value());
+    game?.disconnected(message);
     notifyListeners();
   }
 
