@@ -24,7 +24,7 @@ class ChoiceOverlay extends StatefulWidget {
 }
 
 class _ChoiceOverlayState extends State<ChoiceOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   AnimationController? _timer;
   late final AnimationController _enter = AnimationController(
     vsync: this,

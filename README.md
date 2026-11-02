@@ -95,3 +95,20 @@ un servidor accesible y un proxy TLS que ofrezca `wss://`. No se incluyen
 reconexión, persistencia, migración del anfitrión ni moderación. Una desconexión
 termina la sala para todos. Las salas y los nombres se mantienen en memoria.
 El código de sala sirve para invitar; no sustituye una contraseña de cuenta.
+
+### Prueba entre dos equipos Linux en la misma red
+
+1. El anfitrión inicia el servidor con `HOST=0.0.0.0`. La consola muestra las
+   direcciones de red disponibles. Elegí la dirección de la conexión Wi-Fi o
+   Ethernet que ambos equipos comparten.
+2. En ambos juegos, abrí **Jugar online · Sala privada** e ingresá esa misma
+   dirección de servidor. En la segunda notebook, `127.0.0.1` no apunta al
+   anfitrión: apunta a la propia notebook.
+3. El anfitrión crea una sala y comparte el código. La otra persona ingresa
+   el código; el anfitrión comienza la partida.
+4. Comprobá que se vean las manos propias, que las reacciones lleguen al
+   jugador correcto y que ambos vean el mismo resultado al terminar.
+
+Si no conecta, verificá que ambos equipos estén en la misma red, que la red no
+sea de invitados con aislamiento entre dispositivos y que el firewall permita
+el puerto elegido. El juego no modifica el firewall ni abre puertos del router.

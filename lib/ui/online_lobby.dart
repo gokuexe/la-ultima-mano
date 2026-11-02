@@ -97,7 +97,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 TextField(
                     controller: _address,
                     decoration: const InputDecoration(
-                        labelText: 'Servidor (ws:// o wss://)')),
+                        labelText: 'Servidor (ws:// o wss://)',
+                        helperText:
+                            'En otra notebook, usá la IP del anfitrión.\n127.0.0.1 solo conecta dentro de este equipo.',
+                        helperMaxLines: 2)),
                 TextField(
                     controller: _name,
                     maxLength: 20,
@@ -133,6 +136,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     onPressed: () => Clipboard.setData(
                         ClipboardData(text: lobby['code'] as String)),
                     child: const Text('Copiar código')),
+                Text('Servidor: ${_address.text.trim()}', style: SS.sub),
                 for (final p in lobby['players'] as List)
                   ListTile(
                       leading: const Icon(Icons.person_outline),

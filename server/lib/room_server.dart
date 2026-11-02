@@ -7,7 +7,19 @@ import 'package:game_core/game_config.dart';
 import 'package:game_core/model.dart';
 
 /// Authoritative room server. Private state is projected per connection.
+typedef GameFactory = GameEngine Function(
+    GameRules rules, Set<int> humanPlayerIds, List<String> playerNames);
+
 class RoomServer {
+  final GameFactory _createGame;
+
+  RoomServer({GameFactory? createGame})
+      : _createGame = createGame ?? _defaultGame;
+
+  static GameEngine _defaultGame(
+          GameRules rules, Set<int> humans, List<String> names) =>
+      GameEngine(rules: rules, humanPlayerIds: humans, playerNames: names);
+
   final _random = Random.secure();
   final Map<String, _Room> _rooms = {};
   final Set<_Peer> _peers = {};
@@ -121,10 +133,7 @@ class RoomServer {
             4,
             (i) =>
                 room.peers[i]?.name ?? 'Eco sin nombre de la silla ${i + 1}');
-        final game = GameEngine(
-            rules: room.rules,
-            humanPlayerIds: room.peers.keys.toSet(),
-            playerNames: names);
+        final game = _createGame(room.rules, room.peers.keys.toSet(), names);
         room.game = game;
         game.addListener(() => _broadcast(room));
         game.onFx = (fx) {
@@ -238,12 +247,9 @@ class RoomServer {
 
   void _broadcast(_Room room) {
     final game = room.game;
-    if (!identical(room.lastChoice, game?.choice)) {
-      room.lastChoice = game?.choice;
-      room.choiceId++;
-    }
-    for (final peer in room.peers.values) {
-      if (game == null) {
+    // A lobby has no engine yet. Keep that path separate from game state.
+    if (game == null) {
+      for (final peer in room.peers.values) {
         peer.send({
           'type': 'lobby',
           'code': room.code,
@@ -251,10 +257,16 @@ class RoomServer {
           'mode': room.rules.mode.index,
           'players': room.peers.values
               .map((p) => {'name': p.name, 'seat': p.seat})
-              .toList()
+              .toList(),
         });
-        continue;
       }
+      return;
+    }
+    if (!identical(room.lastChoice, game.choice)) {
+      room.lastChoice = game.choice;
+      room.choiceId++;
+    }
+    for (final peer in room.peers.values) {
       final choice = game.choice;
       peer.send({
         'type': 'state',

@@ -51,69 +51,72 @@ class MiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final v = visualFor(cardId);
 
-    return Container(
-      width: 64,
-      height: 86,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(SS.surfaceUp, v.color, 0.18)!,
-            Color.lerp(SS.surface, v.color, 0.06)!,
-          ],
-        ),
-        border: Border.all(
-          color: blocked ? SS.rojo : v.color.withValues(alpha: 0.6),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 9,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: v.color.withValues(alpha: 0.22),
-            blurRadius: 14,
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              PixelSigil(
-                  seed: cardId.codeUnits.fold(0, (a, b) => a + b),
-                  size: 32,
-                  color: v.color),
-              const SizedBox(height: 5),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  v.social,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 8,
-                    height: 1.15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-              ),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        width: 64,
+        height: 86,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.zero,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(SS.surfaceUp, v.color, 0.18)!,
+              Color.lerp(SS.surface, v.color, 0.06)!,
             ],
           ),
-          if (blocked)
-            Positioned.fill(
-              child: CustomPaint(painter: _BlockedPainter()),
+          border: Border.all(
+            color: blocked ? SS.rojo : v.color.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 9,
+              offset: const Offset(0, 4),
             ),
-        ],
+            BoxShadow(
+              color: v.color.withValues(alpha: 0.22),
+              blurRadius: 14,
+              spreadRadius: -2,
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                PixelSigil(
+                    seed: cardId.codeUnits.fold(0, (a, b) => a + b),
+                    size: 32,
+                    color: v.color),
+                const SizedBox(height: 5),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    v.social,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 8,
+                      height: 1.15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (blocked)
+              Positioned.fill(
+                child: CustomPaint(painter: _BlockedPainter()),
+              ),
+          ],
+        ),
       ),
     );
   }

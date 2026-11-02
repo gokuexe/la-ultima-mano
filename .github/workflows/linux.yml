@@ -51,6 +51,14 @@ jobs:
       - name: Bajar dependencias
         run: flutter pub get
 
+      - name: Compilar y comprobar el servidor independiente
+        working-directory: server
+        run: |
+          dart pub get
+          dart analyze
+          dart compile exe bin/server.dart -o /tmp/la-ultima-mano-server
+          dart run tool/compiled_smoke.dart /tmp/la-ultima-mano-server
+
       - name: Ejecutar pruebas
         run: flutter test
 

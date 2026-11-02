@@ -90,6 +90,8 @@ class GameEngine extends GameNotifier {
 
   void Function(Fx fx)? onFx;
   bool _dead = false;
+  Timer? _choiceTimer;
+  int _gameId = 0;
 
   GameEngine(
       {this.rules = const GameRules(),
@@ -116,10 +118,24 @@ class GameEngine extends GameNotifier {
   @override
   void dispose() {
     _dead = true;
+    _cancelPendingChoice();
+    onFx = null;
     super.dispose();
   }
 
-  void _emit(Fx fx) => onFx?.call(fx);
+  void _emit(Fx fx) {
+    if (!_dead) onFx?.call(fx);
+  }
+
+  void _cancelPendingChoice() {
+    _choiceTimer?.cancel();
+    _choiceTimer = null;
+    final pending = choice;
+    choice = null;
+    if (pending != null && !pending.completer.isCompleted) {
+      pending.completer.complete(null);
+    }
+  }
 
   void _touch() {
     if (!_dead) notifyListeners();
@@ -153,6 +169,9 @@ class GameEngine extends GameNotifier {
   }
 
   void newGame() {
+    if (_dead) return;
+    _gameId++;
+    _cancelPendingChoice();
     final names = playerNames;
     players = List.generate(
       4,
@@ -240,6 +259,8 @@ class GameEngine extends GameNotifier {
     double? seconds,
     int playerId = 0,
   }) {
+    if (_dead) return Future<Object?>.value(null);
+    _cancelPendingChoice();
     final c = Completer<Object?>();
     choice = ChoiceRequest(
       title: title,
@@ -249,22 +270,26 @@ class GameEngine extends GameNotifier {
       seconds: seconds,
       playerId: playerId,
     );
-    _touch();
     if (seconds != null) {
-      Timer(Duration(milliseconds: (seconds * 1000).round()), () {
+      _choiceTimer =
+          Timer(Duration(milliseconds: (seconds * 1000).round()), () {
         if (choice != null && choice!.completer == c && !c.isCompleted) {
           choice = null;
+          _choiceTimer = null;
           c.complete(null);
           _touch();
         }
       });
     }
+    _touch();
     return c.future;
   }
 
   void answer(Object? value) {
     final c = choice;
     if (c == null) return;
+    _choiceTimer?.cancel();
+    _choiceTimer = null;
     choice = null;
     _touch();
     if (!c.completer.isCompleted) c.completer.complete(value);
@@ -330,8 +355,9 @@ class GameEngine extends GameNotifier {
 
   Future<String?> _reactionWindow(int actorId, ReactKind kind,
       {String cardName = ''}) async {
+    final gameId = _gameId;
     for (final p in _othersFrom(actorId)) {
-      if (_dead) continue;
+      if (_dead || gameId != _gameId) return null;
       final opts = p.hand
           .toSet()
           .where((k) => kCards[k]!.react == kind && kCards[k]!.cost <= p.mana)
@@ -368,11 +394,13 @@ class GameEngine extends GameNotifier {
         }
       }
 
+      if (_dead || gameId != _gameId) return null;
       if (chosen != null) {
         p.mana -= kCards[chosen]!.cost;
         p.hand.remove(chosen);
         _log('${p.name} responde con ${kCards[chosen]!.name}.', loud: true);
-        _emit(Fx(FxKind.block, playerId: p.id, actorName: p.name));
+        _emit(Fx(FxKind.block,
+            playerId: p.id, actorName: p.name, cardId: chosen));
         return chosen;
       }
     }
@@ -382,6 +410,8 @@ class GameEngine extends GameNotifier {
   // -------------------------------------------------------------- jugar -----
 
   Future<void> playCard(Player actor, String cardId, Targets? q) async {
+    if (_dead) return;
+    final gameId = _gameId;
     final card = kCards[cardId]!;
     if (actor.free > 0) {
       actor.free--;
@@ -394,10 +424,12 @@ class GameEngine extends GameNotifier {
     _emit(Fx(FxKind.play, cardId: cardId, actorName: actor.name));
     _touch();
     await _wait(140);
+    if (_dead || gameId != _gameId) return;
 
     final blocked =
         await _reactionWindow(actor.id, ReactKind.card, cardName: card.name);
 
+    if (_dead || gameId != _gameId) return;
     if (blocked != null) {
       _log('${card.name} de ${actor.name} queda cancelada.');
       if (blocked == 'congelar') {
@@ -433,6 +465,8 @@ class GameEngine extends GameNotifier {
   // -------------------------------------------------------------- cantar ----
 
   Future<bool> sing(int id) async {
+    if (_dead) return false;
+    final gameId = _gameId;
     final p = players[id];
     if (winner != null || !canSing(id)) return false;
     final genuine = p.isWin;
@@ -442,8 +476,10 @@ class GameEngine extends GameNotifier {
     _emit(Fx(FxKind.sing, playerId: id, actorName: p.name));
     _touch();
     await _wait(500);
+    if (_dead || gameId != _gameId) return false;
 
     final stop = await _reactionWindow(id, ReactKind.sing);
+    if (_dead || gameId != _gameId) return false;
     if (stop != null) {
       final penalty = genuine ? 1 : 2;
       _log(
@@ -492,6 +528,7 @@ class GameEngine extends GameNotifier {
 
   Future<void> endTurn() async {
     if (_dead || winner != null) return;
+    final gameId = _gameId;
     final p = current;
     if (p.overload) {
       final r = _rng.nextInt(6);
@@ -501,7 +538,7 @@ class GameEngine extends GameNotifier {
       _touch();
       await _wait(600);
     }
-    if (winner != null) return;
+    if (_dead || gameId != _gameId || winner != null) return;
     _startTurn((turn + 1) % players.length);
   }
 
@@ -511,10 +548,11 @@ class GameEngine extends GameNotifier {
   // ------------------------------------------------------------------ IA ----
 
   Future<void> _botTurn(int i) async {
+    final gameId = _gameId;
     final p = players[i];
     await _wait(750);
     for (var step = 0; step < 4; step++) {
-      if (_dead || winner != null) return;
+      if (_dead || gameId != _gameId || winner != null) return;
       if (canSing(i)) {
         if (p.isWin || (rules.allowBluffSing && _rng.nextDouble() < 0.2)) {
           if (await sing(i)) return;
@@ -524,13 +562,17 @@ class GameEngine extends GameNotifier {
       final mv = _bestMove(p);
       if (mv == null) break;
       await playCard(p, mv.key, mv.targets);
-      if (_dead || winner != null) return;
+      if (_dead || gameId != _gameId || winner != null) return;
       await _wait(700);
     }
-    if (!_dead && winner == null && canSing(i) && p.isWin) {
+    if (!_dead &&
+        gameId == _gameId &&
+        winner == null &&
+        canSing(i) &&
+        p.isWin) {
       if (await sing(i)) return;
     }
-    if (!_dead && winner == null) await endTurn();
+    if (!_dead && gameId == _gameId && winner == null) await endTurn();
   }
 
   /// Los bots ven sus propias cartas pero no las de nadie más, igual que vos.

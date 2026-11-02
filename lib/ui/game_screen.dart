@@ -80,8 +80,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (fx.playerId == 0) Sfx.i.heavy();
         break;
       case FxKind.block:
-        // la carta cancelada queda en la pila, tachada
-        if (_pile.isNotEmpty) {
+        // Denying an escape does not cancel the previous card on the table.
+        if (_pile.isNotEmpty && fx.cardId != 'desmentir') {
           setState(() => _pile.last.blocked = true);
         }
         Sfx.i.play('block');
@@ -153,8 +153,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   child: Center(
                     child: SizedBox(
                       width: constraints.maxWidth.clamp(0.0, 1000.0),
-                      height: constraints.maxHeight < 900
-                          ? 900
+                      height: constraints.maxHeight < 1000
+                          ? 1000
                           : constraints.maxHeight,
                       child: _table(me, myTurn),
                     ),
