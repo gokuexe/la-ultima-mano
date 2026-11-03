@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:la_ultima_mano/platform/local_store_native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:la_ultima_mano/chapter.dart';
@@ -27,12 +28,12 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('ultima-story-');
     addTearDown(() => dir.delete(recursive: true));
     final file = File('${dir.path}/progress.json');
-    final progress = StoryProgress(file: file);
+    final progress = StoryProgress(store: FileStore(file));
     await progress.update(chapterComplete: true);
     expect(progress.chapterComplete, isFalse);
     await progress.update(memory: MemoryPath.door);
     await progress.update(tutorialComplete: true, chapterComplete: true);
-    final restored = StoryProgress(file: file);
+    final restored = StoryProgress(store: FileStore(file));
     await restored.load();
     expect(restored.memory, MemoryPath.door);
     expect(restored.tutorialComplete, isTrue);

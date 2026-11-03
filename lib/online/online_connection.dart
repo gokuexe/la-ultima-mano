@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import '../platform/connection_failure.dart';
+import '../portal/portal_ads.dart';
 import 'package:flutter/foundation.dart';
 import '../engine.dart';
 import '../game_config.dart';
@@ -9,7 +11,10 @@ import 'server_endpoint.dart';
 import 'server_readiness.dart';
 
 class OnlineConnection extends ChangeNotifier {
-  WebSocket? _socket;
+  OnlineConnection() {
+    PortalAds.instance.blockOnline(this);
+  }
+  WebSocketChannel? _socket;
   String? _endpoint;
   Map<String, dynamic>? _resumeRequest;
   bool _retrying = false;
@@ -33,23 +38,22 @@ class OnlineConnection extends ChangeNotifier {
     if (_disposed) return;
     connectionStatus = 'Conectando con la mesa…';
     notifyListeners();
-    final pending = WebSocket.connect(target.websocket.toString());
-    final socket =
-        await pending.timeout(const Duration(seconds: 12), onTimeout: () {
-      // A timeout must not leave a late WebSocket alive in the background.
-      unawaited(pending.then<void>((late) async {
-        await late.close();
-      }, onError: (Object _, StackTrace __) {}));
-      throw TimeoutException('El servidor no completó la conexión.');
-    });
+    final socket = WebSocketChannel.connect(target.websocket);
+    try {
+      await socket.ready.timeout(const Duration(seconds: 12));
+    } catch (_) {
+      unawaited(socket.sink.close());
+      throw const ConnectionFailure(
+          'No se pudo abrir la conexión con el servidor.');
+    }
     if (_disposed) {
-      await socket.close();
+      await socket.sink.close();
       return;
     }
     _socket = socket;
     connected = true;
     connectionStatus = null;
-    socket.listen((raw) {
+    socket.stream.listen((raw) {
       if (identical(_socket, socket)) _receive(raw);
     }, onDone: () {
       if (identical(_socket, socket)) {
@@ -67,7 +71,7 @@ class OnlineConnection extends ChangeNotifier {
       await joining.future.timeout(const Duration(seconds: 12));
     } catch (_) {
       connected = false;
-      unawaited(socket.close());
+      unawaited(socket.sink.close());
       rethrow;
     } finally {
       _joining = null;
@@ -76,9 +80,9 @@ class OnlineConnection extends ChangeNotifier {
   }
 
   void send(Map<String, dynamic> message) {
-    if (_socket?.readyState == WebSocket.open) {
+    if (_socket != null && connected) {
       try {
-        _socket!.add(jsonEncode(message));
+        _socket!.sink.add(jsonEncode(message));
       } on StateError {/* Socket is closing. */}
     }
   }
@@ -126,10 +130,10 @@ class OnlineConnection extends ChangeNotifier {
     if (_disposed || !connected) return;
     connected = false;
     if (!(_joining?.isCompleted ?? true)) {
-      _joining!.completeError(SocketException(message));
+      _joining!.completeError(ConnectionFailure(message));
     }
     error = message;
-    unawaited(_socket?.close() ?? Future<void>.value());
+    unawaited(_socket?.sink.close() ?? Future<void>.value());
     game?.disconnected(message);
     notifyListeners();
     if (!_terminal &&
@@ -176,12 +180,13 @@ class OnlineConnection extends ChangeNotifier {
   @override
   void dispose() {
     if (_disposed) return;
+    PortalAds.instance.unblockOnline(this);
     send({'type': 'leave'});
     _disposed = true;
     if (!(_joining?.isCompleted ?? true)) {
-      _joining!.completeError(const SocketException('Conexión cancelada.'));
+      _joining!.completeError(const ConnectionFailure('Conexión cancelada.'));
     }
-    unawaited(_socket?.close() ?? Future<void>.value());
+    unawaited(_socket?.sink.close() ?? Future<void>.value());
     game?.dispose();
     super.dispose();
   }

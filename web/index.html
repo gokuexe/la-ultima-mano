@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base href="./">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Un juego de cartas de terror psicológico. Recuperá tus recuerdos en solitario o en salas privadas con amigos.">
+  <meta name="theme-color" content="#101015">
+  <title>La Última Mano</title>
+  <link rel="icon" type="image/svg+xml" href="portal-icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html,body{margin:0;width:100%;height:100%;background:#101015;color:#e3d7bf;overflow:hidden}
+    #loading{height:100%;display:flex;align-items:center;justify-content:center;font:18px monospace;text-align:center}
+  </style>
+  <script src="portal-config.js"></script>
+  <script src="portal-bridge.js"></script>
+</head>
+<body>
+  <div id="loading" role="status">LA ÚLTIMA MANO<br>Cargando la habitación…</div>
+  <noscript>Activá JavaScript para entrar a la habitación.</noscript>
+  <script>window.addEventListener('flutter-first-frame',function(){document.getElementById('loading')?.remove();});</script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

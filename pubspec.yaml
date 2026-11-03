@@ -12,6 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
   audioplayers: ^6.8.0
+  web_socket_channel: ^3.0.3
+  http: ^1.6.0
+  web: ^1.1.2
+  cupertino_icons: ^2.0.0
 
 dev_dependencies:
   la_ultima_mano_server:

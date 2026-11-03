@@ -1,31 +1,18 @@
 import 'dart:convert';
-import 'dart:io';
+import 'platform/local_store.dart';
 import 'package:flutter/foundation.dart';
 import 'sfx.dart';
 
 /// Local preferences only. No account or network is involved.
 class PlayPreferences extends ChangeNotifier {
-  static final instance = PlayPreferences(file: _defaultFile());
-  final File? file;
-  PlayPreferences({this.file});
+  static final instance = PlayPreferences(store: createStore('preferences'));
+  final LocalStore? store;
+  PlayPreferences({this.store});
   double volume = 1;
   double textScale = 1;
   bool reduceMotion = false;
   String? saveError;
   Future<void> _writes = Future<void>.value();
-
-  static File? _defaultFile() {
-    final base = Platform.environment['XDG_CONFIG_HOME'];
-    final home = Platform.environment['HOME'];
-    final directory = base != null && base.startsWith('/')
-        ? base
-        : home == null
-            ? null
-            : '$home/.config';
-    return directory == null
-        ? null
-        : File('$directory/la_ultima_mano/preferences.json');
-  }
 
   Future<void> load() async {
     saveError = null;
@@ -33,11 +20,9 @@ class PlayPreferences extends ChangeNotifier {
     textScale = 1;
     reduceMotion = false;
     try {
-      if (file != null &&
-          await file!.exists() &&
-          await file!.length() <= 4096) {
-        final data =
-            jsonDecode(await file!.readAsString()) as Map<String, dynamic>;
+      final raw = await store?.read();
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
         final v = data['volume'];
         final t = data['textScale'];
         if (v is num && v.isFinite) volume = v.toDouble().clamp(0, 1);
@@ -46,7 +31,7 @@ class PlayPreferences extends ChangeNotifier {
         }
         reduceMotion = data['reduceMotion'] == true;
       }
-    } on FileSystemException {
+    } on StorageFailure {
       saveError = 'No se pudieron leer los ajustes guardados.';
     } on FormatException {
       saveError =
@@ -79,15 +64,10 @@ class PlayPreferences extends ChangeNotifier {
     });
     _writes = _writes.then((_) async {
       try {
-        if (file == null) {
-          throw const FileSystemException('No config directory');
-        }
-        await file!.parent.create(recursive: true);
-        final temporary = File('${file!.path}.$pid.tmp');
-        await temporary.writeAsString(snapshot, flush: true);
-        await temporary.rename(file!.path);
+        if (store == null) throw const StorageFailure('No storage configured');
+        await store!.write(snapshot);
         saveError = null;
-      } on FileSystemException {
+      } on StorageFailure {
         saveError =
             'El cambio funciona ahora, pero no pudo guardarse para la próxima vez.';
       }

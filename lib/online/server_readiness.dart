@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
+import '../platform/connection_failure.dart';
 
 /// Bounded warm-up for services that sleep between play sessions.
 Future<void> waitForServer(
@@ -11,10 +12,10 @@ Future<void> waitForServer(
   bool Function()? cancelled,
 }) async {
   final clock = Stopwatch()..start();
-  final client = HttpClient()..connectionTimeout = requestTimeout;
+  final client = http.Client();
   bool stopped() => cancelled?.call() ?? false;
   void check() {
-    if (stopped()) throw const HttpException('Conexión cancelada.');
+    if (stopped()) throw const ConnectionFailure('Conexión cancelada.');
     if (clock.elapsed >= timeout) {
       throw TimeoutException(
           'El servidor sigue iniciándose. Probá de nuevo en un momento.');
@@ -30,9 +31,8 @@ Future<void> waitForServer(
     while (true) {
       check();
       try {
-        final request = await client.getUrl(health).timeout(budget());
-        request.followRedirects = false;
-        final response = await request.close().timeout(budget());
+        final request = http.Request('GET', health)..followRedirects = false;
+        final response = await client.send(request).timeout(budget());
         if (response.statusCode == 404 ||
             response.statusCode == 401 ||
             response.statusCode == 403) {
@@ -40,9 +40,10 @@ Future<void> waitForServer(
               'La dirección no corresponde a un servidor del juego disponible.');
         }
         // Health payloads are deliberately small, even if a proxy returns HTML.
-        final body = await response.fold<List<int>>(<int>[], (bytes, chunk) {
+        final body =
+            await response.stream.fold<List<int>>(<int>[], (bytes, chunk) {
           if (bytes.length + chunk.length > 4096) {
-            throw const HttpException('Respuesta de estado demasiado grande.');
+            throw http.ClientException('Respuesta de estado demasiado grande.');
           }
           return bytes..addAll(chunk);
         }).timeout(budget());
@@ -51,12 +52,10 @@ Future<void> waitForServer(
           check();
           return;
         }
-      } on SocketException {
+      } on http.ClientException {
         // A deployment may not have bound its port yet.
       } on TimeoutException {
         // Retry within the total warm-up deadline.
-      } on HttpException {
-        check();
       }
       check();
       final remaining = timeout - clock.elapsed;
@@ -64,6 +63,6 @@ Future<void> waitForServer(
           remaining < retryDelay ? remaining : retryDelay);
     }
   } finally {
-    client.close(force: true);
+    client.close();
   }
 }

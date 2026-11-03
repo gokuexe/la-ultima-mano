@@ -43,7 +43,7 @@ Rápido y Farol.
 ## Estado
 
 Primera versión jugable con escenario, retratos, cartas y textos nuevos.
-La campaña, la progresión persistente y el rediseño sonoro están pendientes.
+Incluye un primer capítulo con progreso local, partida libre y salas privadas online. Más capítulos y persistencia de partidas en curso siguen pendientes.
 
 ## Créditos
 
@@ -185,3 +185,37 @@ completa el capítulo. Se guardan la decisión, el tutorial completado y el cier
 desbloqueado en `story-progress.json`, junto a las preferencias locales. Una
 partida a mitad de camino no se conserva; volver a la primera mesa inicia otra.
 Un fallo de guardado se muestra en pantalla y permite continuar en la sesión.
+
+### Web / GameMonetize
+
+La aplicación compila también para navegador. Los sockets usan
+`web_socket_channel`, la espera de salud usa `http` y el guardado local elige
+archivos en Linux o `localStorage` en web. Si el navegador bloquea el guardado,
+se puede jugar y la interfaz explica que el avance solo dura esa sesión.
+
+El GameId público se configura en `web/portal-config.js`. El SDK oficial se
+carga desde `https://api.gamemonetize.com/sdk.js`; no se incluyen claves de la
+cuenta. Se solicitan anuncios solo antes de una partida local o al repetirla,
+nunca por temporizador ni durante una sesión online. SDK_GAME_PAUSE bloquea
+entradas, pausa el motor local y silencia sonido; SDK_GAME_START reanuda y
+restaura el volumen elegido. Sin SDK disponible se puede seguir jugando.
+
+```bash
+flutter pub get
+node tool/portal_bridge_test.cjs
+flutter build web --release --no-web-resources-cdn --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+python3 tool/package_gamemonetize.py --output LaUltimaMano-GameMonetize.zip
+```
+
+El ZIP coloca `index.html` en la raíz y usa rutas relativas para funcionar en
+el subdirectorio del portal. CanvasKit y las fuentes viajan en el paquete.
+Incluye créditos y la licencia de Pixelify. El servidor debe desplegar la
+cabecera CORS de `/health` incluida en este cambio para admitir la comprobación
+de disponibilidad desde navegadores. El backend continúa alojado en Render;
+no se sube un iframe de otra web dentro del juego.
+
+La ficha del juego se prepara en GameMonetize con descripción, controles y tres
+portadas JPG (512×384, 512×512 y 512×340). La verificación real de SDK y la
+activación se comprueban desde su panel; una compilación aprobada no equivale
+a aprobación editorial. El trabajo del portal no incorpora una licencia
+general nueva al código heredado.

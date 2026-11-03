@@ -27,14 +27,26 @@ class Sfx {
   bool _ready = false;
   bool muted = false;
   double _masterVolume = 1;
+  bool _adMuted = false;
   final Map<String, double> _lastVolumes = {};
   double get masterVolume => _masterVolume;
+  double get effectiveVolume => _adMuted ? 0 : masterVolume;
+  bool get adMuted => _adMuted;
+  set adMuted(bool value) {
+    _adMuted = value;
+    _syncVolumes();
+  }
+
   set masterVolume(double value) {
     _masterVolume = value.clamp(0, 1);
+    _syncVolumes();
+  }
+
+  void _syncVolumes() {
     for (final entry in _players.entries) {
       unawaited(entry.value
           .setVolume(
-              ((_lastVolumes[entry.key] ?? 0.85) * _masterVolume).clamp(0, 1))
+              ((_lastVolumes[entry.key] ?? .85) * effectiveVolume).clamp(0, 1))
           .catchError((Object _) {}));
     }
   }
@@ -47,7 +59,7 @@ class Sfx {
         await p.setReleaseMode(ReleaseMode.stop);
         await p.setPlayerMode(PlayerMode.lowLatency);
         await p.setSource(AssetSource('audio/$n.wav'));
-        await p.setVolume(0.85 * masterVolume);
+        await p.setVolume(0.85 * effectiveVolume);
         _players[n] = p;
       } catch (e) {
         debugPrint('No se pudo cargar el sonido $n: $e');
@@ -57,12 +69,12 @@ class Sfx {
   }
 
   Future<void> play(String name, {double volume = 0.85}) async {
-    if (muted) return;
+    if (muted || adMuted) return;
     final p = _players[name];
     if (p == null) return;
     try {
       _lastVolumes[name] = volume;
-      await p.setVolume((volume * masterVolume).clamp(0.0, 1.0));
+      await p.setVolume((volume * effectiveVolume).clamp(0.0, 1.0));
       await p.seek(Duration.zero);
       await p.resume();
     } catch (e) {
@@ -71,17 +83,17 @@ class Sfx {
   }
 
   void tap() {
-    if (muted) return;
+    if (muted || adMuted) return;
     HapticFeedback.selectionClick();
   }
 
   void thump() {
-    if (muted) return;
+    if (muted || adMuted) return;
     HapticFeedback.mediumImpact();
   }
 
   void heavy() {
-    if (muted) return;
+    if (muted || adMuted) return;
     HapticFeedback.heavyImpact();
   }
 

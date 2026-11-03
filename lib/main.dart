@@ -11,6 +11,7 @@ import 'ui/game_screen.dart';
 import 'ui/online_lobby.dart';
 import 'ui/archive_screen.dart';
 import 'play_preferences.dart';
+import 'portal/portal_ads.dart';
 import 'story_progress.dart';
 import 'ui/chapter_screen.dart';
 import 'ui/options_screen.dart';
@@ -19,6 +20,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PlayPreferences.instance.load();
   await StoryProgress.instance.load();
+  PortalAds.instance.initialize();
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
     SystemChrome.setPreferredOrientations([
@@ -60,7 +62,21 @@ class LaUltimaManoApp extends StatelessWidget {
                     textScaler: MediaQuery.textScalerOf(context).clamp(
                         minScaleFactor: PlayPreferences.instance.textScale),
                   ),
-                  child: _ResponsiveStage(child: child!),
+                  child: ListenableBuilder(
+                      listenable: PortalAds.instance,
+                      builder: (context, _) => Stack(children: [
+                            Positioned.fill(
+                                child: _ResponsiveStage(child: child!)),
+                            if (PortalAds.instance.blocked) ...[
+                              const ModalBarrier(
+                                  dismissible: false, color: Color(0xE6101015)),
+                              const Center(
+                                  child: Material(
+                                      color: Colors.transparent,
+                                      child: Text('PAUSA PUBLICITARIA',
+                                          style: SS.title))),
+                            ],
+                          ])),
                 ),
               ),
               home: const TitleScreen(),
@@ -134,11 +150,19 @@ class _TitleScreenState extends State<TitleScreen>
     super.dispose();
   }
 
-  void _begin() {
+  bool _starting = false;
+  Future<void> _begin() async {
+    if (_starting) return;
+    setState(() => _starting = true);
     Sfx.i.tap();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GameScreen(rules: GameRules(_mode)),
-    ));
+    try {
+      await PortalAds.instance.requestBreak();
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => GameScreen(rules: GameRules(_mode))));
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
   }
 
   @override
@@ -294,7 +318,7 @@ class _TitleScreenState extends State<TitleScreen>
                                       foregroundColor: SS.table,
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 18)),
-                                  onPressed: _begin,
+                                  onPressed: _starting ? null : _begin,
                                   child: const Text('SENTARSE A LA MESA',
                                       style: TextStyle(
                                           fontSize: 19, letterSpacing: 2)),

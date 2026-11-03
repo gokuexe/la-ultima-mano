@@ -5,6 +5,7 @@ import '../engine.dart';
 import '../online/online_connection.dart';
 import '../play_preferences.dart';
 import '../chapter.dart';
+import '../portal/portal_ads.dart';
 import 'options_screen.dart';
 import '../dialogue.dart';
 import 'dialogue_box.dart';
@@ -56,6 +57,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _line = DialogueLine(
           'La habitación', ChapterOne.opening(widget.chapterMemory!));
     }
+    if (engine is! RemoteGameEngine) PortalAds.instance.attach(engine);
     engine.onFx = _handleFx;
     engine.addListener(_onEngine);
     Sfx.i.init();
@@ -141,6 +143,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    PortalAds.instance.detach(engine);
     engine.removeListener(_onEngine);
     engine.onFx = null;
     engine.dispose();
@@ -149,7 +152,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _restart() {
+  bool _restarting = false;
+  Future<void> _restart() async {
+    if (_restarting) return;
     if (widget.chapterMemory != null) {
       Navigator.of(context).pop(engine.winner == engine.me.name);
       return;
@@ -158,13 +163,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       (engine as RemoteGameEngine).requestRematch();
       return;
     }
+    _restarting = true;
     Sfx.i.tap();
+    await PortalAds.instance.requestBreak();
+    if (!mounted) return;
     setState(() {
       _pile.clear();
       _seq = 0;
       _line = _dialogue.beginRound(1);
     });
     engine.newGame();
+    _restarting = false;
   }
 
   @override

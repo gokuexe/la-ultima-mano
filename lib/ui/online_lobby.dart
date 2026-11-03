@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import '../platform/connection_failure.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game_config.dart';
@@ -93,7 +93,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         setState(() => _error =
             'El servidor tarda en responder. Esperá un momento y volvé a intentar.');
       }
-    } on SocketException {
+    } on ConnectionFailure {
       if (mounted) {
         setState(() => _error =
             'No se pudo llegar al servidor. Comprobá Internet y la dirección.');

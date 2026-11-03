@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:la_ultima_mano/platform/connection_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:la_ultima_mano/online/online_connection.dart';
 
@@ -63,7 +64,7 @@ void main() {
     final (http, connection, accepted) = await setup();
     final pending = connection.connect(
         'ws://127.0.0.1:${http.port}/ws', {'type': 'create', 'name': 'Uno'});
-    final expectation = expectLater(pending, throwsA(isA<SocketException>()));
+    final expectation = expectLater(pending, throwsA(isA<ConnectionFailure>()));
     final socket = await accepted;
     socket.listen((_) => socket.close());
     await expectation;

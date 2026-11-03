@@ -1,17 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
+import 'platform/local_store.dart';
 import 'package:flutter/foundation.dart';
 import 'chapter.dart';
-import 'play_preferences.dart';
 
 class StoryProgress extends ChangeNotifier {
-  static final instance = StoryProgress(
-      file: PlayPreferences.instance.file == null
-          ? null
-          : File(
-              '${PlayPreferences.instance.file!.parent.path}/story-progress.json'));
-  final File? file;
-  StoryProgress({this.file});
+  static final instance = StoryProgress(store: createStore('story-progress'));
+  final LocalStore? store;
+  StoryProgress({this.store});
   MemoryPath? memory;
   bool tutorialComplete = false;
   bool chapterComplete = false;
@@ -24,11 +19,9 @@ class StoryProgress extends ChangeNotifier {
     chapterComplete = false;
     saveError = null;
     try {
-      if (file != null &&
-          await file!.exists() &&
-          await file!.length() <= 4096) {
-        final data =
-            jsonDecode(await file!.readAsString()) as Map<String, dynamic>;
+      final raw = await store?.read();
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
         memory = switch (data['memory']) {
           'name' => MemoryPath.name,
           'door' => MemoryPath.door,
@@ -37,7 +30,7 @@ class StoryProgress extends ChangeNotifier {
         tutorialComplete = memory != null && data['tutorialComplete'] == true;
         chapterComplete = tutorialComplete && data['chapterComplete'] == true;
       }
-    } on FileSystemException {
+    } on StorageFailure {
       saveError = 'No se pudo leer el avance guardado.';
     } on FormatException {
       saveError = 'El avance guardado no era válido. Podés volver a empezar.';
@@ -64,15 +57,10 @@ class StoryProgress extends ChangeNotifier {
     notifyListeners();
     _writes = _writes.then((_) async {
       try {
-        if (file == null) {
-          throw const FileSystemException('No storage configured');
-        }
-        await file!.parent.create(recursive: true);
-        final temporary = File('${file!.path}.$pid.tmp');
-        await temporary.writeAsString(snapshot, flush: true);
-        await temporary.rename(file!.path);
+        if (store == null) throw const StorageFailure('No storage configured');
+        await store!.write(snapshot);
         saveError = null;
-      } on FileSystemException {
+      } on StorageFailure {
         saveError =
             'El avance funciona en esta sesión, pero no pudo guardarse.';
       }

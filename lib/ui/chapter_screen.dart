@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../chapter.dart';
+import '../portal/portal_ads.dart';
 import '../story_progress.dart';
 import '../theme.dart';
 import 'game_screen.dart';
@@ -67,6 +68,8 @@ class _ChapterScreenState extends State<ChapterScreen> {
   Future<void> _play() async {
     if (_busy) return;
     setState(() => _busy = true);
+    await PortalAds.instance.requestBreak();
+    if (!mounted) return;
     final path = _progress.memory!;
     final won = widget.playMatch != null
         ? await widget.playMatch!(context, path)

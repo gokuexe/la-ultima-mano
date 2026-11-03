@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:la_ultima_mano/platform/connection_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:la_ultima_mano/online/server_endpoint.dart';
 import 'package:la_ultima_mano/online/server_readiness.dart';
@@ -62,6 +63,6 @@ void main() {
             retryDelay: const Duration(milliseconds: 5)),
         throwsA(isA<TimeoutException>()));
     await expectLater(waitForServer(uri, cancelled: () => true),
-        throwsA(isA<HttpException>()));
+        throwsA(isA<ConnectionFailure>()));
   });
 }

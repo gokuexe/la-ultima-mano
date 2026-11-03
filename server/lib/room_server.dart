@@ -37,6 +37,7 @@ class RoomServer {
         request.response.statusCode = HttpStatus.serviceUnavailable;
         await request.response.close();
       } else if (request.uri.path == '/health') {
+        request.response.headers.set('Access-Control-Allow-Origin', '*');
         request.response.write('ok');
         await request.response.close();
       } else if (request.uri.path == '/ws' &&

@@ -115,4 +115,20 @@ void main() {
     expect((await client.next('error'))['message'], contains('nombre'));
     await client.socket.close();
   });
+  test('health can be checked from a browser on another origin', () async {
+    final server = RoomServer();
+    await server.start(port: 0);
+    final client = HttpClient();
+    addTearDown(() async {
+      client.close(force: true);
+      await server.close();
+    });
+    final request = await client
+        .getUrl(Uri.parse('http://127.0.0.1:${server.port}/health'));
+    request.headers.set('Origin', 'https://html5.gamemonetize.com');
+    final response = await request.close();
+    expect(response.statusCode, 200);
+    expect(response.headers.value('Access-Control-Allow-Origin'), '*');
+    expect(await utf8.decoder.bind(response).join(), 'ok');
+  });
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:la_ultima_mano/platform/local_store_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:la_ultima_mano/play_preferences.dart';
 import 'package:la_ultima_mano/sfx.dart';
@@ -15,12 +16,12 @@ void main() {
   });
   test('settings survive a restart and serialize rapid updates', () async {
     final file = File('${directory.path}/config/settings.json');
-    final preferences = PlayPreferences(file: file);
+    final preferences = PlayPreferences(store: FileStore(file));
     await Future.wait([
       preferences.update(volume: .2),
       preferences.update(volume: .7, textScale: 1.2, reduceMotion: true)
     ]);
-    final reloaded = PlayPreferences(file: file);
+    final reloaded = PlayPreferences(store: FileStore(file));
     await reloaded.load();
     expect(reloaded.volume, .7);
     expect(reloaded.textScale, 1.2);
@@ -35,7 +36,7 @@ void main() {
   test('corrupt or out-of-range settings fall back safely', () async {
     final file = File('${directory.path}/settings.json');
     await file.writeAsString('invalid json');
-    final preferences = PlayPreferences(file: file);
+    final preferences = PlayPreferences(store: FileStore(file));
     await preferences.load();
     expect(preferences.volume, 1);
     expect(preferences.saveError, isNotNull);
@@ -51,7 +52,7 @@ void main() {
     final block = File('${directory.path}/block');
     await block.writeAsString('file');
     final preferences =
-        PlayPreferences(file: File('${block.path}/settings.json'));
+        PlayPreferences(store: FileStore(File('${block.path}/settings.json')));
     await preferences.update(volume: .4);
     expect(preferences.volume, .4);
     expect(preferences.saveError, isNotNull);
