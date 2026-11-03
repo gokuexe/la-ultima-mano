@@ -51,15 +51,31 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     }
   }
 
+  void _resetConnection() {
+    _connection?.removeListener(_update);
+    _connection?.dispose();
+    setState(() {
+      _connection = null;
+      _error = null;
+    });
+  }
+
   Future<void> _connect(bool create) async {
     if (_name.text.trim().isEmpty) {
       setState(() => _error = 'Elegí cómo te llaman en la mesa.');
+      return;
+    }
+    final code = _code.text.trim().toUpperCase();
+    if (!create && !RegExp(r'^[A-HJ-NP-Z2-9]{6}$').hasMatch(code)) {
+      setState(() =>
+          _error = 'Ingresá el código de seis letras y números de la sala.');
       return;
     }
     setState(() {
       _connecting = true;
       _error = null;
     });
+    _connection?.removeListener(_update);
     _connection?.dispose();
     final connection = OnlineConnection()..addListener(_update);
     _connection = connection;
@@ -67,7 +83,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       await connection.connect(_address.text.trim(), {
         'type': create ? 'create' : 'join',
         'name': _name.text.trim(),
-        'code': _code.text.trim(),
+        'code': code,
         'mode': _mode.index
       });
     } on FormatException catch (error) {
@@ -185,6 +201,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 else
                   const Text('Esperando al anfitrión…', style: SS.body),
               ],
+              if (lobby != null && !(_connection?.connected ?? false))
+                OutlinedButton(
+                  onPressed: _resetConnection,
+                  child: const Text('VOLVER A ENTRAR'),
+                ),
               if (_connecting) ...[
                 const LinearProgressIndicator(),
                 const SizedBox(height: 8),

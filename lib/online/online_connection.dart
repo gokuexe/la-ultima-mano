@@ -15,6 +15,7 @@ class OnlineConnection extends ChangeNotifier {
   Map<String, dynamic>? lobby;
   bool connected = false;
   String? connectionStatus;
+  Completer<void>? _joining;
   bool _disposed = false;
   Future<void> connect(String endpoint, Map<String, dynamic> request) async {
     final target = ServerEndpoint.parse(endpoint);
@@ -46,8 +47,21 @@ class OnlineConnection extends ChangeNotifier {
     socket.listen(_receive,
         onDone: () => _lost('Se perdió la conexión con la sala.'),
         onError: (_) => _lost('No se pudo mantener la conexión.'));
+    connectionStatus = 'Esperando la confirmación de la sala…';
+    final joining = Completer<void>();
+    _joining = joining;
     send(request);
     notifyListeners();
+    try {
+      await joining.future.timeout(const Duration(seconds: 12));
+    } catch (_) {
+      connected = false;
+      unawaited(socket.close());
+      rethrow;
+    } finally {
+      _joining = null;
+      connectionStatus = null;
+    }
   }
 
   void send(Map<String, dynamic> message) {
@@ -64,6 +78,7 @@ class OnlineConnection extends ChangeNotifier {
         case 'lobby':
           lobby = data;
           error = null;
+          if (!(_joining?.isCompleted ?? true)) _joining!.complete();
         case 'state':
           game ??= RemoteGameEngine(
               this, GameRules(GameMode.values[data['mode'] as int]));
@@ -72,6 +87,9 @@ class OnlineConnection extends ChangeNotifier {
           game?.receiveFx(data);
         case 'error':
           error = data['message'] as String;
+          if (!(_joining?.isCompleted ?? true)) {
+            _joining!.completeError(FormatException(error!));
+          }
           game?.showError(error!);
         case 'closed':
           _lost(data['message'] as String);
@@ -85,6 +103,9 @@ class OnlineConnection extends ChangeNotifier {
   void _lost(String message) {
     if (_disposed || !connected) return;
     connected = false;
+    if (!(_joining?.isCompleted ?? true)) {
+      _joining!.completeError(SocketException(message));
+    }
     error = message;
     unawaited(_socket?.close() ?? Future<void>.value());
     game?.disconnected(message);
@@ -94,6 +115,9 @@ class OnlineConnection extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    if (!(_joining?.isCompleted ?? true)) {
+      _joining!.completeError(const SocketException('Conexión cancelada.'));
+    }
     unawaited(_socket?.close() ?? Future<void>.value());
     game?.dispose();
     super.dispose();
