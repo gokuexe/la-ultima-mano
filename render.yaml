@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: la-ultima-mano
+    runtime: docker
+    repo: https://github.com/gokuexe/la-ultima-mano
+    branch: feature/private-rooms
+    plan: free
+    numInstances: 1
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000

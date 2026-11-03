@@ -112,3 +112,27 @@ El código de sala sirve para invitar; no sustituye una contraseña de cuenta.
 Si no conecta, verificá que ambos equipos estén en la misma red, que la red no
 sea de invitados con aislamiento entre dispositivos y que el firewall permita
 el puerto elegido. El juego no modifica el firewall ni abre puertos del router.
+
+### Servidor por Internet (preparación)
+
+`render.yaml` prepara un servicio Docker gratuito en Render desde la rama
+`feature/private-rooms`, con despliegues automáticos desactivados. El archivo no
+crea un servicio por sí solo: primero hay que conectar la cuenta y desplegarlo.
+El contexto Docker es la raíz del repositorio y el Dockerfile es
+`server/Dockerfile`. No requiere claves dentro del juego.
+
+Tras desplegar, verificar `https://DIRECCION-REAL/health` (respuesta `ok`) y
+probar dos clientes usando `wss://DIRECCION-REAL/ws`. Para empaquetar la dirección
+en el cliente Linux:
+
+```sh
+flutter build linux --release --dart-define=ONLINE_SERVER_URL=wss://DIRECCION-REAL/ws
+```
+
+Sustituir `DIRECCION-REAL` por el dominio asignado al servicio. Sin esta opción,
+el cliente permite ingresar una dirección manualmente. La conexión segura
+espera hasta 90 segundos a que el servidor despierte y muestra su progreso.
+
+Las salas viven en memoria en una sola instancia: un reinicio termina las
+partidas. El servidor avisa a los clientes al recibir SIGTERM. El plan gratuito
+puede suspenderse o reiniciarse; usarlo inicialmente para pruebas.

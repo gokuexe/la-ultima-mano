@@ -24,12 +24,16 @@ class RoomServer {
   final Map<String, _Room> _rooms = {};
   final Set<_Peer> _peers = {};
   HttpServer? _http;
+  Future<void>? _closing;
   int get port => _http!.port;
 
   Future<void> start({String host = '127.0.0.1', int port = 8080}) async {
     _http = await HttpServer.bind(host, port);
     _http!.listen((request) async {
-      if (request.uri.path == '/health') {
+      if (_closing != null) {
+        request.response.statusCode = HttpStatus.serviceUnavailable;
+        await request.response.close();
+      } else if (request.uri.path == '/health') {
         request.response.write('ok');
         await request.response.close();
       } else if (request.uri.path == '/ws' &&
@@ -62,14 +66,35 @@ class RoomServer {
     });
   }
 
-  Future<void> close() async {
+  Future<void> close() => _closing ??= _close();
+
+  Future<void> _close() async {
+    final peers = List.of(_peers);
     for (final room in _rooms.values) {
       room.game?.dispose();
+      room.peers.clear();
     }
     _rooms.clear();
-    for (final peer in List.of(_peers)) {
-      await peer.socket.close();
+    _peers.clear();
+    for (final peer in peers) {
+      peer.room = null;
+      peer.send({
+        'type': 'closed',
+        'message':
+            'El servidor se está reiniciando. Volvé a entrar en un momento.'
+      });
     }
+    await Future.wait(peers.map((peer) async {
+      try {
+        await peer.socket
+            .close(1001, 'Server shutdown')
+            .timeout(const Duration(seconds: 3));
+      } on TimeoutException {
+        // Bound shutdown time when a peer has already lost its network.
+      } on SocketException {
+        // The peer may have disappeared during shutdown.
+      }
+    }));
     await _http?.close(force: true);
   }
 

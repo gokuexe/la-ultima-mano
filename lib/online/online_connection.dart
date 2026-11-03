@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import '../engine.dart';
 import '../game_config.dart';
 import '../model.dart';
+import 'server_endpoint.dart';
+import 'server_readiness.dart';
 
 class OnlineConnection extends ChangeNotifier {
   WebSocket? _socket;
@@ -12,21 +14,35 @@ class OnlineConnection extends ChangeNotifier {
   String? error;
   Map<String, dynamic>? lobby;
   bool connected = false;
+  String? connectionStatus;
   bool _disposed = false;
   Future<void> connect(String endpoint, Map<String, dynamic> request) async {
-    final uri = Uri.parse(endpoint);
-    if (!['ws', 'wss'].contains(uri.scheme) || uri.host.isEmpty) {
-      throw const FormatException(
-          'Usá una dirección ws:// o wss:// del servidor.');
+    final target = ServerEndpoint.parse(endpoint);
+    if (target.secure) {
+      connectionStatus =
+          'Despertando la habitación… puede tardar hasta un minuto.';
+      notifyListeners();
+      await waitForServer(target.health, cancelled: () => _disposed);
     }
+    if (_disposed) return;
+    connectionStatus = 'Conectando con la mesa…';
+    notifyListeners();
+    final pending = WebSocket.connect(target.websocket.toString());
     final socket =
-        await WebSocket.connect(endpoint).timeout(const Duration(seconds: 8));
+        await pending.timeout(const Duration(seconds: 12), onTimeout: () {
+      // A timeout must not leave a late WebSocket alive in the background.
+      unawaited(pending.then<void>((late) async {
+        await late.close();
+      }, onError: (Object _, StackTrace __) {}));
+      throw TimeoutException('El servidor no completó la conexión.');
+    });
     if (_disposed) {
       await socket.close();
       return;
     }
     _socket = socket;
     connected = true;
+    connectionStatus = null;
     socket.listen(_receive,
         onDone: () => _lost('Se perdió la conexión con la sala.'),
         onError: (_) => _lost('No se pudo mantener la conexión.'));

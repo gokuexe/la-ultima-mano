@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game_config.dart';
 import '../online/online_connection.dart';
+import '../online/server_endpoint.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 
@@ -12,7 +15,10 @@ class OnlineLobbyScreen extends StatefulWidget {
 }
 
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
-  final _address = TextEditingController(text: 'ws://127.0.0.1:8080/ws');
+  final _address = TextEditingController(
+      text: ServerEndpoint.configured.isEmpty
+          ? 'ws://127.0.0.1:8080/ws'
+          : ServerEndpoint.configured);
   final _name = TextEditingController();
   final _code = TextEditingController();
   OnlineConnection? _connection;
@@ -64,10 +70,22 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         'code': _code.text.trim(),
         'mode': _mode.index
       });
+    } on FormatException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } on TimeoutException {
+      if (mounted) {
+        setState(() => _error =
+            'El servidor tarda en responder. Esperá un momento y volvé a intentar.');
+      }
+    } on SocketException {
+      if (mounted) {
+        setState(() => _error =
+            'No se pudo llegar al servidor. Comprobá Internet y la dirección.');
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error =
-            'No se pudo conectar. Comprobá la dirección del servidor.');
+            'No se pudo abrir la mesa. Intentá de nuevo en un momento.');
       }
     } finally {
       if (mounted) setState(() => _connecting = false);
@@ -94,13 +112,24 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     'Creá una sala privada o usá el código de otra persona. Sin cuentas.',
                     style: SS.body),
                 const SizedBox(height: 20),
-                TextField(
-                    controller: _address,
-                    decoration: const InputDecoration(
-                        labelText: 'Servidor (ws:// o wss://)',
-                        helperText:
-                            'En otra notebook, usá la IP del anfitrión.\n127.0.0.1 solo conecta dentro de este equipo.',
-                        helperMaxLines: 2)),
+                if (ServerEndpoint.configured.isEmpty)
+                  TextField(
+                      controller: _address,
+                      decoration: const InputDecoration(
+                          labelText: 'Servidor (ws:// o wss://)',
+                          helperText:
+                              'En otra notebook, usá la IP del anfitrión.\n127.0.0.1 solo conecta dentro de este equipo.',
+                          helperMaxLines: 2))
+                else
+                  ExpansionTile(
+                    title: const Text('Opciones de conexión'),
+                    children: [
+                      TextField(
+                          controller: _address,
+                          decoration: const InputDecoration(
+                              labelText: 'Servidor seguro')),
+                    ],
+                  ),
                 TextField(
                     controller: _name,
                     maxLength: 20,
@@ -156,7 +185,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 else
                   const Text('Esperando al anfitrión…', style: SS.body),
               ],
-              if (_connecting) const LinearProgressIndicator(),
+              if (_connecting) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 8),
+                Text(_connection?.connectionStatus ?? 'Buscando la mesa…',
+                    style: SS.sub),
+              ],
               if (error != null)
                 Padding(
                     padding: const EdgeInsets.only(top: 16),

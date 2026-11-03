@@ -22,8 +22,11 @@ Future<void> main() async {
   } else {
     stdout.writeln('Conectar a: ws://$host:${server.port}/ws');
   }
-  ProcessSignal.sigint.watch().listen((_) async {
+  Future<void> stop(ProcessSignal _) async {
     await server.close();
     exit(0);
-  });
+  }
+
+  ProcessSignal.sigint.watch().listen(stop);
+  ProcessSignal.sigterm.watch().listen(stop);
 }
