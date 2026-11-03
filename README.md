@@ -169,3 +169,19 @@ siguen activos durante esa sesión.
 La guía contiene las 20 cartas con sus efectos y costes del mismo catálogo que
 usa el motor; permite buscar sin tildes y filtrar por familia. Abrirla no pausa
 la partida. El menú se desplaza cuando el texto grande necesita más espacio.
+
+### Historia · Capítulo 01
+
+El menú conserva la partida libre y añade un recorrido singleplayer opcional:
+una decisión inicial (el nombre o la puerta), una mesa de práctica sin rivales,
+una introducción a los tres desconocidos y una partida Clásica normal. La
+práctica enseña a formar el 6 y el 7 y a gastar lucidez; se puede reiniciar sin
+consecuencias. No modifica los repartos ni las decisiones de los bots de la
+partida real.
+
+Al finalizar, «LEER DESENLACE» vuelve al capítulo. La victoria desbloquea un cierre
+que depende de la decisión inicial; la derrota ofrece reintentar. Abandonar no
+completa el capítulo. Se guardan la decisión, el tutorial completado y el cierre
+desbloqueado en `story-progress.json`, junto a las preferencias locales. Una
+partida a mitad de camino no se conserva; volver a la primera mesa inicia otra.
+Un fallo de guardado se muestra en pantalla y permite continuar en la sesión.

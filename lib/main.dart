@@ -11,11 +11,14 @@ import 'ui/game_screen.dart';
 import 'ui/online_lobby.dart';
 import 'ui/archive_screen.dart';
 import 'play_preferences.dart';
+import 'story_progress.dart';
+import 'ui/chapter_screen.dart';
 import 'ui/options_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PlayPreferences.instance.load();
+  await StoryProgress.instance.load();
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
     SystemChrome.setPreferredOrientations([
@@ -182,6 +185,13 @@ class _TitleScreenState extends State<TitleScreen>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                OutlinedButton(
+                                  onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const ChapterScreen())),
+                                  child: const Text('HISTORIA · CAPÍTULO 01'),
+                                ),
                                 TextButton(
                                   onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(

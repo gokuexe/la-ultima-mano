@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../engine.dart';
 import '../online/online_connection.dart';
 import '../play_preferences.dart';
+import '../chapter.dart';
 import 'options_screen.dart';
 import '../dialogue.dart';
 import 'dialogue_box.dart';
@@ -20,8 +21,13 @@ import 'pile.dart';
 class GameScreen extends StatefulWidget {
   final GameRules rules;
   final GameEngine? session;
+  final MemoryPath? chapterMemory;
 
-  const GameScreen({super.key, this.rules = const GameRules(), this.session});
+  const GameScreen(
+      {super.key,
+      this.rules = const GameRules(),
+      this.session,
+      this.chapterMemory});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -46,6 +52,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    if (widget.chapterMemory != null) {
+      _line = DialogueLine(
+          'La habitación', ChapterOne.opening(widget.chapterMemory!));
+    }
     engine.onFx = _handleFx;
     engine.addListener(_onEngine);
     Sfx.i.init();
@@ -140,6 +150,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _restart() {
+    if (widget.chapterMemory != null) {
+      Navigator.of(context).pop(engine.winner == engine.me.name);
+      return;
+    }
     if (engine is RemoteGameEngine) {
       (engine as RemoteGameEngine).requestRematch();
       return;
@@ -189,11 +203,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   winner: engine.winner!,
                   youWon: engine.winner == engine.me.name,
                   onAgain: _restart,
-                  againLabel: engine is RemoteGameEngine
-                      ? (engine as RemoteGameEngine).votedRematch
-                          ? 'Esperando al resto…'
-                          : 'QUIERO REVANCHA'
-                      : 'Volver a despertar',
+                  againLabel: widget.chapterMemory != null
+                      ? 'LEER DESENLACE'
+                      : engine is RemoteGameEngine
+                          ? (engine as RemoteGameEngine).votedRematch
+                              ? 'Esperando al resto…'
+                              : 'QUIERO REVANCHA'
+                          : 'Volver a despertar',
                   onExit: widget.session == null
                       ? null
                       : () => Navigator.of(context).pop(),
@@ -282,7 +298,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 2),
-              Text('Modo ${engine.rules.label}', style: SS.sub),
+              Text(
+                  'Modo ${engine.rules.label}${widget.chapterMemory == null ? '' : ' · Capítulo 01'}',
+                  style: SS.sub),
             ],
           ),
         ),
