@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -279,7 +280,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(Story.title, style: SS.title),
+              const GameText(Story.title, style: SS.title),
               const SizedBox(height: 2),
               AnimatedSwitcher(
                 duration: MediaQuery.disableAnimationsOf(context)
@@ -295,7 +296,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     child: child,
                   ),
                 ),
-                child: Text(
+                child: GameText(
                   engine.winner != null
                       ? 'Partida terminada'
                       : engine.statusMessage ??
@@ -307,19 +308,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
+              GameText(
                   'Modo ${engine.rules.label}${widget.chapterMemory == null ? '' : ' · Capítulo 01'}',
                   style: SS.sub),
             ],
           ),
         ),
         IconButton(
-          tooltip: 'Salir de la mesa',
+          tooltip: context.tr('Salir de la mesa'),
           icon: const Icon(Icons.exit_to_app, color: SS.mute, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         IconButton(
-          tooltip: 'Ajustes y guía',
+          tooltip: context.tr('Ajustes y guía'),
           icon: const Icon(Icons.tune, color: SS.mute, size: 20),
           onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const OptionsScreen())),
@@ -332,7 +333,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             color: SS.mute,
             size: 21,
           ),
-          tooltip: Sfx.i.muted ? 'Activar sonido' : 'Silenciar',
+          tooltip: context.tr(Sfx.i.muted ? 'Activar sonido' : 'Silenciar'),
         ),
       ],
     );
@@ -387,16 +388,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       children: [
         Row(
           children: [
-            const Text('Lucidez ', style: SS.sub),
+            const GameText('Lucidez ', style: SS.sub),
             ManaPips(value: me.mana, max: 7),
             const SizedBox(width: 8),
-            Text(
+            GameText(
               me.free > 0 ? '${me.mana} · ${me.free} gratis' : '${me.mana}',
               style: SS.sub,
             ),
           ],
         ),
-        Text(
+        GameText(
           me.isWin ? 'lo recordás' : 'distancia: ${me.distance}',
           style: SS.sub.copyWith(color: me.isWin ? SS.win : SS.mute),
         ),
@@ -537,7 +538,7 @@ class _Btn extends StatelessWidget {
         ),
         child: Opacity(
           opacity: enabled ? 1 : 0.35,
-          child: Text(
+          child: GameText(
             label,
             style: TextStyle(
               fontSize: 13,

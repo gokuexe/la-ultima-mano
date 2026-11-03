@@ -152,7 +152,19 @@ Al terminar, todas las personas deben pulsar «QUIERO REVANCHA». El servidor
 cuenta un solo voto por asiento y reparte una partida nueva dentro de la misma
 sala. La interfaz conserva los nombres y limpia la mesa anterior.
 
-### Comodidad y guía de cartas
+### Idioma, comodidad y guía de cartas
+
+El selector «Español / English» está en el menú y en ajustes. Cambia la interfaz,
+las cartas, los diálogos, la historia y la guía sin reiniciar la partida.
+La elección se guarda localmente: cada persona online puede jugar en su propio
+idioma. Los nombres escritos por los jugadores, los identificadores de cartas y
+las reglas compartidas con el servidor se conservan. El nombre del juego y los
+nombres propios de los personajes mantienen su forma original.
+
+Las traducciones están en `lib/l10n/english_messages.dart`; `catalog.dart` resuelve
+los mensajes variables de la mesa. Los nuevos textos visibles deben añadirse al
+catálogo y renderizarse con `GameText` o `context.tr`; los nombres de jugadores
+se renderizan con `translate: false`.
 
 «AJUSTES Y GUÍA DE CARTAS», en el menú y en la mesa, permite regular volumen,
 ampliar la lectura y reducir movimiento. Esta última opción elimina los

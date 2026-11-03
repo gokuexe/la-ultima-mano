@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/material.dart';
 import '../story.dart';
 import '../theme.dart';
@@ -7,16 +8,16 @@ class ArchiveScreen extends StatelessWidget {
   const ArchiveScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('ARCHIVO 067')),
+        appBar: AppBar(title: const GameText('ARCHIVO 067')),
         body: Center(
             child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 620),
           child: ListView(padding: const EdgeInsets.all(24), children: [
-            const Text(Story.chapter, style: SS.title),
+            const GameText(Story.chapter, style: SS.title),
             const SizedBox(height: 20),
-            const Text('NOTA ENCONTRADA BAJO TU SILLA', style: SS.sub),
+            const GameText('NOTA ENCONTRADA BAJO TU SILLA', style: SS.sub),
             const SizedBox(height: 8),
-            const Text(
+            const GameText(
                 'La letra es tuya. No recordás haberla escrito.\n\n'
                 '«Si volvés a despertar acá, no preguntes cuánto tiempo pasó. '
                 'Escuchá las historias. Cada persona dejó una parte de sí sobre la mesa. '
@@ -49,14 +50,14 @@ class ArchiveScreen extends StatelessWidget {
                 'En una partida local, los tres desconocidos los controla el juego. Online, compartís la mesa con otras personas; los textos de «La habitación» son narración, no mensajes de tus rivales.'
               ),
             ]) ...[
-              Text(entry.$1, style: SS.title),
+              GameText(entry.$1, style: SS.title),
               const SizedBox(height: 8),
-              Text(entry.$2, style: SS.body),
+              GameText(entry.$2, style: SS.body),
               const SizedBox(height: 24),
             ],
             FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('CERRAR EL ARCHIVO')),
+                child: const GameText('CERRAR EL ARCHIVO')),
           ]),
         )),
       );

@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -104,7 +105,7 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
                     ),
                     const SizedBox(height: 14),
                   ],
-                  Text(
+                  GameText(
                     r.title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -115,7 +116,8 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
                   ),
                   if (r.desc.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(r.desc, textAlign: TextAlign.center, style: SS.sub),
+                    GameText(r.desc,
+                        textAlign: TextAlign.center, style: SS.sub),
                   ],
                   const SizedBox(height: 16),
                   for (final o in r.options)
@@ -166,8 +168,9 @@ class _OptionButton extends StatelessWidget {
                   color: tint ?? SS.line, width: tint == null ? 1 : 4),
             ),
           ),
-          child: Text(
+          child: GameText(
             option.label,
+            translate: !option.playerName,
             style: const TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
@@ -236,7 +239,7 @@ class _EndOverlayState extends State<EndOverlay>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  GameText(
                     widget.youWon ? 'LA PUERTA SE ABRE' : 'TE QUEDÁS ACÁ',
                     style: TextStyle(
                       fontSize: 32,
@@ -246,7 +249,7 @@ class _EndOverlayState extends State<EndOverlay>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  GameText(
                       widget.youWon
                           ? 'Del otro lado, alguien vuelve a repartir.'
                           : '${widget.winner} recordó primero. La habitación te reconoce.',
@@ -255,7 +258,7 @@ class _EndOverlayState extends State<EndOverlay>
                   if (widget.status != null)
                     Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Text(widget.status!,
+                      child: GameText(widget.status!,
                           textAlign: TextAlign.center, style: SS.sub),
                     ),
                   const SizedBox(height: 26),
@@ -268,7 +271,7 @@ class _EndOverlayState extends State<EndOverlay>
                         color: SS.mana,
                         borderRadius: BorderRadius.zero,
                       ),
-                      child: Text(
+                      child: GameText(
                         widget.againLabel,
                         style: TextStyle(
                           fontSize: 15,
@@ -281,7 +284,7 @@ class _EndOverlayState extends State<EndOverlay>
                   if (widget.onExit != null)
                     TextButton(
                       onPressed: widget.onExit,
-                      child: const Text('SALIR DE LA SALA'),
+                      child: const GameText('SALIR DE LA SALA'),
                     ),
                 ],
               ),
@@ -371,12 +374,12 @@ class SingFlash extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        GameText(
                           actor,
                           style: const TextStyle(fontSize: 13, color: SS.mute),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+                        GameText(
                           '¡LO RECUERDO!',
                           style: TextStyle(
                             fontSize: 30,

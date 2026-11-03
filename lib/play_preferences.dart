@@ -11,6 +11,7 @@ class PlayPreferences extends ChangeNotifier {
   double volume = 1;
   double textScale = 1;
   bool reduceMotion = false;
+  String language = 'es';
   String? saveError;
   Future<void> _writes = Future<void>.value();
 
@@ -19,6 +20,7 @@ class PlayPreferences extends ChangeNotifier {
     volume = 1;
     textScale = 1;
     reduceMotion = false;
+    language = 'es';
     try {
       final raw = await store?.read();
       if (raw != null) {
@@ -30,6 +32,7 @@ class PlayPreferences extends ChangeNotifier {
           textScale = (t.clamp(1, 1.2) * 10).round() / 10;
         }
         reduceMotion = data['reduceMotion'] == true;
+        language = data['language'] == 'en' ? 'en' : 'es';
       }
     } on StorageFailure {
       saveError = 'No se pudieron leer los ajustes guardados.';
@@ -49,18 +52,24 @@ class PlayPreferences extends ChangeNotifier {
     Sfx.i.muted = volume == 0;
   }
 
-  Future<void> update({double? volume, double? textScale, bool? reduceMotion}) {
+  Future<void> update(
+      {double? volume,
+      double? textScale,
+      bool? reduceMotion,
+      String? language}) {
     if (volume != null && volume.isFinite) this.volume = volume.clamp(0, 1);
     if (textScale != null && textScale.isFinite) {
       this.textScale = (textScale.clamp(1, 1.2) * 10).round() / 10;
     }
     if (reduceMotion != null) this.reduceMotion = reduceMotion;
+    if (language == 'en' || language == 'es') this.language = language!;
     _applySound();
     notifyListeners();
     final snapshot = jsonEncode({
       'volume': this.volume,
       'textScale': this.textScale,
-      'reduceMotion': this.reduceMotion
+      'reduceMotion': this.reduceMotion,
+      'language': this.language
     });
     _writes = _writes.then((_) async {
       try {

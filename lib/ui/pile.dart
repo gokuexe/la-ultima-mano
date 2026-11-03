@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -96,7 +97,7 @@ class MiniCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
+                  child: GameText(
                     v.social,
                     textAlign: TextAlign.center,
                     maxLines: 2,
@@ -212,7 +213,7 @@ class _PlayedPileState extends State<PlayedPile>
                     _landing(visible[i], c),
 
                 if (visible.isEmpty)
-                  Text(
+                  GameText(
                     'la mesa está limpia',
                     style: SS.sub.copyWith(
                         fontSize: 11, color: SS.mute.withValues(alpha: 0.5)),
@@ -252,7 +253,7 @@ class _PlayedPileState extends State<PlayedPile>
                       opacity: c < 0.15
                           ? c / 0.15
                           : (c > 0.8 ? ((1 - c) / 0.2).clamp(0.0, 1.0) : 1.0),
-                      child: Text(
+                      child: GameText(
                         '${visible.last.actor} · '
                         '${visualFor(visible.last.cardId).social}',
                         style: TextStyle(
@@ -344,7 +345,7 @@ class DeckStack extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              child: Text(
+              child: GameText(
                 '$count',
                 style: SS.numStyle.copyWith(fontSize: 11, color: SS.mute),
               ),
@@ -384,11 +385,11 @@ class _CardBack extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('6',
+            GameText('6',
                 style: SS.numStyle.copyWith(
                     fontSize: 22, color: Colors.white.withValues(alpha: 0.14))),
             const SizedBox(width: 4),
-            Text('7',
+            GameText('7',
                 style: SS.numStyle.copyWith(
                     fontSize: 22, color: Colors.white.withValues(alpha: 0.14))),
           ],
@@ -409,12 +410,12 @@ class _Watermark extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('6',
+            GameText('6',
                 style: SS.numStyle.copyWith(
                     fontSize: 96,
                     color: Colors.white.withValues(alpha: 0.035))),
             const SizedBox(width: 18),
-            Text('7',
+            GameText('7',
                 style: SS.numStyle.copyWith(
                     fontSize: 96,
                     color: Colors.white.withValues(alpha: 0.035))),

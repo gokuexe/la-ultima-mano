@@ -24,8 +24,10 @@ class ChoiceOption {
   final Object? value;
   final CardColor? tint;
   final bool danger;
+  final bool playerName;
 
-  const ChoiceOption(this.label, this.value, {this.tint, this.danger = false});
+  const ChoiceOption(this.label, this.value,
+      {this.tint, this.danger = false, this.playerName = false});
 }
 
 class ChoiceRequest {
@@ -359,8 +361,9 @@ class GameEngine extends GameNotifier {
         final r = await ask(
           title: '${card.name}: elegí un rival',
           desc: card.desc,
-          options:
-              foesOf(actor.id).map((f) => ChoiceOption(f.name, f.id)).toList(),
+          options: foesOf(actor.id)
+              .map((f) => ChoiceOption(f.name, f.id, playerName: true))
+              .toList(),
         );
         if (r == null) return null;
         q.foe = r as int;

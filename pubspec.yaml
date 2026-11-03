@@ -16,6 +16,8 @@ dependencies:
   http: ^1.6.0
   web: ^1.1.2
   cupertino_icons: ^2.0.0
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   la_ultima_mano_server:

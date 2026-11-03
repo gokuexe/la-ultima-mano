@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'dart:async';
 import '../platform/connection_failure.dart';
 import 'package:flutter/material.dart';
@@ -113,7 +114,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final lobby = _connection?.lobby;
     final error = _error ?? _connection?.error;
     return Scaffold(
-      appBar: AppBar(title: const Text('LA MESA COMPARTIDA')),
+      appBar: AppBar(title: const GameText('LA MESA COMPARTIDA')),
       body: Center(
           child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
@@ -121,77 +122,78 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             padding: const EdgeInsets.all(24),
             shrinkWrap: true,
             children: [
-              const Text('Hay otras voces en la habitación.', style: SS.title),
+              const GameText('Hay otras voces en la habitación.',
+                  style: SS.title),
               const SizedBox(height: 12),
               if (lobby == null) ...[
-                const Text(
+                const GameText(
                     'Creá una sala privada o usá el código de otra persona. Sin cuentas.',
                     style: SS.body),
                 const SizedBox(height: 20),
                 if (ServerEndpoint.configured.isEmpty)
                   TextField(
                       controller: _address,
-                      decoration: const InputDecoration(
-                          labelText: 'Servidor (ws:// o wss://)',
-                          helperText:
-                              'En otra notebook, usá la IP del anfitrión.\n127.0.0.1 solo conecta dentro de este equipo.',
+                      decoration: InputDecoration(
+                          labelText: context.tr('Servidor (ws:// o wss://)'),
+                          helperText: context.tr(
+                              'En otra notebook, usá la IP del anfitrión.\n127.0.0.1 solo conecta dentro de este equipo.'),
                           helperMaxLines: 2))
                 else
                   ExpansionTile(
-                    title: const Text('Opciones de conexión'),
+                    title: const GameText('Opciones de conexión'),
                     children: [
                       TextField(
                           controller: _address,
-                          decoration: const InputDecoration(
-                              labelText: 'Servidor seguro')),
+                          decoration: InputDecoration(
+                              labelText: context.tr('Servidor seguro'))),
                     ],
                   ),
                 TextField(
                     controller: _name,
                     maxLength: 20,
-                    decoration: const InputDecoration(
-                        labelText: 'Tu nombre en la mesa')),
+                    decoration: InputDecoration(
+                        labelText: context.tr('Tu nombre en la mesa'))),
                 DropdownButton<GameMode>(
                     value: _mode,
                     isExpanded: true,
                     items: GameMode.values
                         .map((m) => DropdownMenuItem(
-                            value: m, child: Text(GameRules(m).label)))
+                            value: m, child: GameText(GameRules(m).label)))
                         .toList(),
                     onChanged: (m) => setState(() => _mode = m!)),
                 FilledButton(
                     onPressed: _connecting ? null : () => _connect(true),
-                    child: const Text('CREAR SALA')),
+                    child: const GameText('CREAR SALA')),
                 const SizedBox(height: 16),
                 TextField(
                     controller: _code,
                     maxLength: 6,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                        labelText: 'Código de invitación')),
+                    decoration: InputDecoration(
+                        labelText: context.tr('Código de invitación'))),
                 OutlinedButton(
                     onPressed: _connecting ? null : () => _connect(false),
-                    child: const Text('ENTRAR A LA SALA')),
+                    child: const GameText('ENTRAR A LA SALA')),
               ] else ...[
-                const Text('Compartí este código con tus invitados:',
+                const GameText('Compartí este código con tus invitados:',
                     style: SS.body),
                 SelectableText(lobby['code'] as String,
                     style: SS.title.copyWith(fontSize: 36)),
                 TextButton(
                     onPressed: () => Clipboard.setData(
                         ClipboardData(text: lobby['code'] as String)),
-                    child: const Text('Copiar código')),
-                Text('Servidor: ${_address.text.trim()}', style: SS.sub),
+                    child: const GameText('Copiar código')),
+                GameText('Servidor: ${_address.text.trim()}', style: SS.sub),
                 for (final p in lobby['players'] as List)
                   ListTile(
                       leading: const Icon(Icons.person_outline),
-                      title: Text(p['name'] as String),
-                      subtitle: Text(p['connected'] == false
+                      title: GameText(p['name'] as String, translate: false),
+                      subtitle: GameText(p['connected'] == false
                           ? 'Reconectando…'
                           : p['seat'] == 0
                               ? 'Anfitrión'
                               : 'Invitado')),
-                const Text(
+                const GameText(
                     'De 2 a 4 personas. Los lugares vacíos los ocupan ecos controlados por el juego.',
                     style: SS.sub),
                 if (lobby['seat'] == 0)
@@ -202,26 +204,26 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                                   .any((p) => p['connected'] == false)
                           ? null
                           : () => _connection!.send({'type': 'start'}),
-                      child: const Text('ABRIR LA PARTIDA'))
+                      child: const GameText('ABRIR LA PARTIDA'))
                 else
-                  const Text('Esperando al anfitrión…', style: SS.body),
+                  const GameText('Esperando al anfitrión…', style: SS.body),
               ],
               if (lobby != null && !(_connection?.connected ?? false))
                 OutlinedButton(
                   onPressed: _resetConnection,
-                  child: const Text('VOLVER A ENTRAR'),
+                  child: const GameText('VOLVER A ENTRAR'),
                 ),
               if (_connecting) ...[
                 const LinearProgressIndicator(),
                 const SizedBox(height: 8),
-                Text(_connection?.connectionStatus ?? 'Buscando la mesa…',
+                GameText(_connection?.connectionStatus ?? 'Buscando la mesa…',
                     style: SS.sub),
               ],
               if (error != null)
                 Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child:
-                        Text(error, style: const TextStyle(color: SS.rojoUp))),
+                    child: GameText(error,
+                        style: const TextStyle(color: SS.rojoUp))),
             ]),
       )),
     );

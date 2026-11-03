@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -163,14 +164,14 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                                   ),
                                 );
                               },
-                              child: Text(
+                              child: GameText(
                                 '${widget.value}',
                                 key: ValueKey<int>(widget.value),
                                 style: SS.numStyle.copyWith(fontSize: 46),
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
+                            GameText(
                               widget.isRed ? 'RECUERDO ROJO' : 'RECUERDO AZUL',
                               style: TextStyle(
                                 fontSize: 10.5,

@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/material.dart';
 import '../dialogue.dart';
 import '../theme.dart';
@@ -22,11 +23,13 @@ class _DialogueBoxState extends State<DialogueBox> {
 
   @override
   Widget build(BuildContext context) {
-    final line = widget.line;
+    final source = widget.line;
+    final line =
+        DialogueLine(context.tr(source.speaker), context.tr(source.text));
     final instant = _revealed || MediaQuery.disableAnimationsOf(context);
     return Semantics(
       label: '${line.speaker}: ${line.text}',
-      hint: 'Activar para mostrar el texto completo',
+      hint: context.tr('Activar para mostrar el texto completo'),
       button: true,
       onTap: () => setState(() => _revealed = true),
       child: ExcludeSemantics(
@@ -40,7 +43,8 @@ class _DialogueBoxState extends State<DialogueBox> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(line.speaker.toUpperCase(),
+                GameText(line.speaker.toUpperCase(),
+                    translate: false,
                     style: const TextStyle(
                         fontSize: 10, letterSpacing: 1, color: SS.mana)),
                 const SizedBox(height: 4),
@@ -49,7 +53,8 @@ class _DialogueBoxState extends State<DialogueBox> {
                   ExcludeSemantics(
                       child: Opacity(
                           opacity: 0,
-                          child: Text(line.text,
+                          child: GameText(line.text,
+                              translate: false,
                               style: const TextStyle(
                                   fontSize: 13, height: 1.2, color: SS.ink)))),
                   TweenAnimationBuilder<double>(
@@ -58,9 +63,10 @@ class _DialogueBoxState extends State<DialogueBox> {
                     duration: instant
                         ? Duration.zero
                         : Duration(milliseconds: line.text.runes.length * 20),
-                    builder: (_, t, __) => Text(
+                    builder: (_, t, __) => GameText(
                         String.fromCharCodes(line.text.runes
                             .take((line.text.runes.length * t).ceil())),
+                        translate: false,
                         style: const TextStyle(
                             fontSize: 13, height: 1.2, color: SS.ink)),
                   ),

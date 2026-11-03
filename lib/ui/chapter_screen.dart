@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/material.dart';
 import '../chapter.dart';
 import '../portal/portal_ads.dart';
@@ -97,7 +98,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('HISTORIA · CAPÍTULO 01')),
+        appBar: AppBar(title: const GameText('HISTORIA · CAPÍTULO 01')),
         body: Center(
             child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 620),
@@ -105,12 +106,12 @@ class _ChapterScreenState extends State<ChapterScreen> {
                   key: ValueKey(_scene),
                   padding: const EdgeInsets.all(24),
                   children: [
-                    const Text(ChapterOne.title, style: SS.title),
+                    const GameText(ChapterOne.title, style: SS.title),
                     const SizedBox(height: 20),
                     if (_scene == _Scene.introduction) ...[
-                      const Text('DESPERTAR', style: SS.title),
+                      const GameText('DESPERTAR', style: SS.title),
                       const SizedBox(height: 12),
-                      const Text(
+                      const GameText(
                           'Hay cuatro sillas y una lámpara. La tuya sigue moviéndose, como si acabaras de levantarte.\n\n'
                           'Una mujer alisa un mantel que no existe. Un hombre observa una puerta cerrada. La cuarta figura evita tu mirada.\n\n'
                           'Sobre la mesa hay un papel doblado. Detrás de vos, alguien golpea la madera una sola vez. ¿Qué seguís primero?',
@@ -119,22 +120,24 @@ class _ChapterScreenState extends State<ChapterScreen> {
                       FilledButton(
                           onPressed:
                               _busy ? null : () => _choose(MemoryPath.name),
-                          child: const Text('LEER EL PAPEL CON MI NOMBRE')),
+                          child: const GameText('LEER EL PAPEL CON MI NOMBRE')),
                       OutlinedButton(
                           onPressed:
                               _busy ? null : () => _choose(MemoryPath.door),
-                          child: const Text('EXAMINAR LA PUERTA')),
+                          child: const GameText('EXAMINAR LA PUERTA')),
                     ],
                     if (_scene == _Scene.lesson) ...[
-                      Text(ChapterOne.clue(_progress.memory!), style: SS.body),
+                      GameText(ChapterOne.clue(_progress.memory!),
+                          style: SS.body),
                       const SizedBox(height: 20),
-                      const Text('PRÁCTICA · DOS RECUERDOS', style: SS.title),
+                      const GameText('PRÁCTICA · DOS RECUERDOS',
+                          style: SS.title),
                       const SizedBox(height: 12),
-                      const Text(
+                      const GameText(
                           'Esta mesa de práctica no tiene rivales ni reloj. Armá un 6 y un 7 usando Destello (+1) y Laguna (−1). Cada uso cuesta 1 lucidez.\n\nEn una partida real también podés terminar tu turno para recuperar lucidez al volver a jugar.',
                           style: SS.body),
                       const SizedBox(height: 16),
-                      Text('Lucidez disponible: ${_lesson.lucidity}',
+                      GameText('Lucidez disponible: ${_lesson.lucidity}',
                           style: SS.title),
                       const SizedBox(height: 16),
                       Row(
@@ -147,10 +150,10 @@ class _ChapterScreenState extends State<ChapterScreen> {
                       if (_feedback != null)
                         Padding(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Text(_feedback!, style: SS.body)),
+                            child: GameText(_feedback!, style: SS.body)),
                       FilledButton(
                           onPressed: _busy ? null : _practiceDone,
-                          child: const Text('INTENTAR SALIR')),
+                          child: const GameText('INTENTAR SALIR')),
                       TextButton(
                           onPressed: _busy
                               ? null
@@ -158,15 +161,15 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                     _lesson.reset();
                                     _feedback = null;
                                   }),
-                          child: const Text('REINICIAR PRÁCTICA')),
+                          child: const GameText('REINICIAR PRÁCTICA')),
                     ],
                     if (_scene == _Scene.briefing) ...[
-                      const Text('LA PRIMERA MESA', style: SS.title),
+                      const GameText('LA PRIMERA MESA', style: SS.title),
                       const SizedBox(height: 12),
-                      Text(ChapterOne.opening(_progress.memory!),
+                      GameText(ChapterOne.opening(_progress.memory!),
                           style: SS.body),
                       const SizedBox(height: 16),
-                      const Text(
+                      const GameText(
                           'La Viuda guarda una fotografía. El Testigo cuenta las veces que mirás la puerta. El Hueco repite tu último suspiro.\n\n'
                           'Ahora jugás una partida Clásica contra los tres. La práctica no cambia el reparto ni sus decisiones. Llegá a 6 y 7 e intentá salir durante tu turno.\n\n'
                           'Una reacción puede frenar una carta o impedir tu salida. Cuando el juego te pregunte, elegí antes de que termine la barra. Podés consultar la guía desde el botón de ajustes de la mesa.',
@@ -174,7 +177,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
                       const SizedBox(height: 24),
                       FilledButton(
                           onPressed: _busy ? null : _play,
-                          child: const Text('JUGAR LA PRIMERA MESA')),
+                          child: const GameText('JUGAR LA PRIMERA MESA')),
                       TextButton(
                           onPressed: _busy
                               ? null
@@ -182,34 +185,34 @@ class _ChapterScreenState extends State<ChapterScreen> {
                                     _lesson.reset();
                                     _scene = _Scene.lesson;
                                   }),
-                          child: const Text('VOLVER A PRACTICAR')),
+                          child: const GameText('VOLVER A PRACTICAR')),
                     ],
                     if (_scene == _Scene.ending) ...[
-                      Text(_won ? 'DEL OTRO LADO' : 'OTRA SILLA',
+                      GameText(_won ? 'DEL OTRO LADO' : 'OTRA SILLA',
                           style: SS.title),
                       const SizedBox(height: 16),
-                      Text(ChapterOne.ending(_progress.memory!, _won),
+                      GameText(ChapterOne.ending(_progress.memory!, _won),
                           style: SS.body),
                       const SizedBox(height: 24),
                       if (_progress.chapterComplete)
-                        const Text(
+                        const GameText(
                             'Capítulo completado · Desenlace disponible al volver.',
                             style: SS.sub),
                       FilledButton(
                           onPressed: _busy ? null : _play,
-                          child: Text(_won
+                          child: GameText(_won
                               ? 'VOLVER A JUGAR EL CAPÍTULO'
                               : 'VOLVER A INTENTARLO')),
                       TextButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('VOLVER AL MENÚ')),
+                          child: const GameText('VOLVER AL MENÚ')),
                     ],
                     const SizedBox(height: 24),
-                    const Text(
+                    const GameText(
                         'Se guardan tu decisión y los pasos completados. La partida en curso no se guarda.',
                         style: SS.sub),
                     if (_progress.saveError != null)
-                      Text(_progress.saveError!,
+                      GameText(_progress.saveError!,
                           style: const TextStyle(color: SS.rojoUp)),
                     if (_busy) const LinearProgressIndicator(),
                   ],
@@ -219,14 +222,14 @@ class _ChapterScreenState extends State<ChapterScreen> {
       padding: const EdgeInsets.all(12),
       decoration: SS.panel(accent: SS.of(red)),
       child: Column(children: [
-        Text(red ? 'ROJO' : 'AZUL', style: SS.sub),
-        Text('$value',
+        GameText(red ? 'ROJO' : 'AZUL', style: SS.sub),
+        GameText('$value',
             style: SS.numStyle.copyWith(fontSize: 48, color: SS.upOf(red))),
         OutlinedButton(
             onPressed: _busy ? null : () => _adjust(red, 1),
-            child: const Text('DESTELLO +1')),
+            child: const GameText('DESTELLO +1')),
         OutlinedButton(
             onPressed: _busy ? null : () => _adjust(red, -1),
-            child: const Text('LAGUNA −1')),
+            child: const GameText('LAGUNA −1')),
       ]));
 }

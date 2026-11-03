@@ -1,5 +1,8 @@
+import 'l10n/game_text.dart';
+import 'l10n/language_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'game_config.dart';
@@ -46,6 +49,9 @@ class LaUltimaManoApp extends StatelessWidget {
         listenable: PlayPreferences.instance,
         builder: (context, _) => MaterialApp(
               title: Story.title,
+              locale: Locale(PlayPreferences.instance.language),
+              supportedLocales: const [Locale('es'), Locale('en')],
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
               debugShowCheckedModeBanner: false,
               theme: SS.theme(),
               // El juego está pensado para un celular. En una ventana de escritorio
@@ -62,21 +68,24 @@ class LaUltimaManoApp extends StatelessWidget {
                     textScaler: MediaQuery.textScalerOf(context).clamp(
                         minScaleFactor: PlayPreferences.instance.textScale),
                   ),
-                  child: ListenableBuilder(
-                      listenable: PortalAds.instance,
-                      builder: (context, _) => Stack(children: [
-                            Positioned.fill(
-                                child: _ResponsiveStage(child: child!)),
-                            if (PortalAds.instance.blocked) ...[
-                              const ModalBarrier(
-                                  dismissible: false, color: Color(0xE6101015)),
-                              const Center(
-                                  child: Material(
-                                      color: Colors.transparent,
-                                      child: Text('PAUSA PUBLICITARIA',
-                                          style: SS.title))),
-                            ],
-                          ])),
+                  child: LanguageScope(
+                      language: PlayPreferences.instance.language,
+                      child: ListenableBuilder(
+                          listenable: PortalAds.instance,
+                          builder: (context, _) => Stack(children: [
+                                Positioned.fill(
+                                    child: _ResponsiveStage(child: child!)),
+                                if (PortalAds.instance.blocked) ...[
+                                  const ModalBarrier(
+                                      dismissible: false,
+                                      color: Color(0xE6101015)),
+                                  const Center(
+                                      child: Material(
+                                          color: Colors.transparent,
+                                          child: GameText('PAUSA PUBLICITARIA',
+                                              style: SS.title))),
+                                ],
+                              ]))),
                 ),
               ),
               home: const TitleScreen(),
@@ -209,25 +218,27 @@ class _TitleScreenState extends State<TitleScreen>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                const LanguagePicker(),
                                 OutlinedButton(
                                   onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(
                                           builder: (_) =>
                                               const ChapterScreen())),
-                                  child: const Text('HISTORIA · CAPÍTULO 01'),
+                                  child:
+                                      const GameText('HISTORIA · CAPÍTULO 01'),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(
                                           builder: (_) =>
                                               const ArchiveScreen())),
-                                  child: const Text(
+                                  child: const GameText(
                                       'ARCHIVO 067  /  NO CONFIAR EN NADIE',
                                       textAlign: TextAlign.center,
                                       style: SS.sub),
                                 ),
                                 const Spacer(flex: 3),
-                                const Text('LA ÚLTIMA\nMANO',
+                                const GameText('LA ÚLTIMA\nMANO',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontFamily: 'Pixelify',
@@ -241,14 +252,14 @@ class _TitleScreenState extends State<TitleScreen>
                                               offset: Offset(4, 4))
                                         ])),
                                 const SizedBox(height: 16),
-                                const Text(Story.subtitle,
+                                const GameText(Story.subtitle,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontSize: 10,
                                         letterSpacing: 2,
                                         color: SS.mana)),
                                 const Spacer(),
-                                const Text(Story.opening,
+                                const GameText(Story.opening,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontSize: 16,
@@ -261,16 +272,16 @@ class _TitleScreenState extends State<TitleScreen>
                                       PixelSigil(
                                           seed: 6, color: SS.rojoUp, size: 28),
                                       SizedBox(width: 16),
-                                      Text('6  /  7', style: SS.title),
+                                      GameText('6  /  7', style: SS.title),
                                       SizedBox(width: 16),
                                       PixelSigil(
                                           seed: 7, color: SS.azulUp, size: 28),
                                     ]),
                                 const SizedBox(height: 12),
-                                const Text(Story.objective,
+                                const GameText(Story.objective,
                                     textAlign: TextAlign.center, style: SS.sub),
                                 const Spacer(),
-                                const Text('ELEGÍ CÓMO RECORDAR',
+                                const GameText('ELEGÍ CÓMO RECORDAR',
                                     textAlign: TextAlign.center, style: SS.sub),
                                 const SizedBox(height: 12),
                                 Row(children: [
@@ -298,7 +309,8 @@ class _TitleScreenState extends State<TitleScreen>
                                           ),
                                           onPressed: () =>
                                               setState(() => _mode = mode),
-                                          child: Text(GameRules(mode).label),
+                                          child:
+                                              GameText(GameRules(mode).label),
                                         ),
                                       ),
                                     )
@@ -307,7 +319,7 @@ class _TitleScreenState extends State<TitleScreen>
                                 ConstrainedBox(
                                     constraints:
                                         const BoxConstraints(minHeight: 42),
-                                    child: Text(GameRules(_mode).blurb,
+                                    child: GameText(GameRules(_mode).blurb,
                                         textAlign: TextAlign.center,
                                         style: SS.sub)),
                                 const SizedBox(height: 10),
@@ -319,7 +331,7 @@ class _TitleScreenState extends State<TitleScreen>
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 18)),
                                   onPressed: _starting ? null : _begin,
-                                  child: const Text('SENTARSE A LA MESA',
+                                  child: const GameText('SENTARSE A LA MESA',
                                       style: TextStyle(
                                           fontSize: 19, letterSpacing: 2)),
                                 ),
@@ -328,7 +340,7 @@ class _TitleScreenState extends State<TitleScreen>
                                       MaterialPageRoute<void>(
                                           builder: (_) =>
                                               const OnlineLobbyScreen())),
-                                  child: const Text(
+                                  child: const GameText(
                                       'JUGAR ONLINE · SALA PRIVADA',
                                       style: TextStyle(color: SS.azulUp)),
                                 ),
@@ -337,10 +349,10 @@ class _TitleScreenState extends State<TitleScreen>
                                         MaterialPageRoute<void>(
                                             builder: (_) =>
                                                 const OptionsScreen())),
-                                    child:
-                                        const Text('AJUSTES Y GUÍA DE CARTAS')),
+                                    child: const GameText(
+                                        'AJUSTES Y GUÍA DE CARTAS')),
                                 const SizedBox(height: 10),
-                                const Text(
+                                const GameText(
                                     'Tres desconocidos. Una salida. Ningún reloj.',
                                     textAlign: TextAlign.center,
                                     style: SS.sub),
