@@ -9,6 +9,7 @@ import 'sfx.dart';
 import 'theme.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_lobby.dart';
+import 'ui/archive_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -160,8 +161,13 @@ class _TitleScreenState extends State<TitleScreen>
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('ARCHIVO 067  /  NO CONFIAR EN NADIE',
-                        textAlign: TextAlign.center, style: SS.sub),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const ArchiveScreen())),
+                      child: const Text('ARCHIVO 067  /  NO CONFIAR EN NADIE',
+                          textAlign: TextAlign.center, style: SS.sub),
+                    ),
                     const Spacer(flex: 3),
                     const Text('LA ÚLTIMA\nMANO',
                         textAlign: TextAlign.center,

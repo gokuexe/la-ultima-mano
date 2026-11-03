@@ -32,7 +32,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final List<PlayedEntry> _pile = [];
   int _seq = 0;
   final DialogueDirector _dialogue = DialogueDirector();
-  DialogueLine _line = DialogueDirector.opening;
+  late DialogueLine _line = _dialogue.beginRound(1);
   final ScrollController _handScroll = ScrollController();
 
   late final AnimationController _singFlash = AnimationController(
@@ -57,7 +57,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _round = remote.round;
       _pile.clear();
       _seq = 0;
-      _line = DialogueDirector.opening;
+      _line = _dialogue.beginRound(_round);
       _singFlash.reset();
     }
     if (mounted) setState(() {});
@@ -66,7 +66,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _handleFx(Fx fx) {
     final actor = fx.actorName ??
         (fx.playerId == null ? '' : engine.players[fx.playerId!].name);
-    final line = _dialogue.react(fx, widget.session == null ? actor : '');
+    final line =
+        _dialogue.react(fx, actor, allowNpcVoice: widget.session == null);
     if (line != null && mounted) setState(() => _line = line);
     switch (fx.kind) {
       case FxKind.play:
@@ -143,7 +144,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _pile.clear();
       _seq = 0;
-      _line = DialogueDirector.opening;
+      _line = _dialogue.beginRound(1);
     });
     engine.newGame();
   }
