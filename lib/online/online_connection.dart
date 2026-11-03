@@ -10,6 +10,10 @@ import 'server_readiness.dart';
 
 class OnlineConnection extends ChangeNotifier {
   WebSocket? _socket;
+  String? _endpoint;
+  Map<String, dynamic>? _resumeRequest;
+  bool _retrying = false;
+  bool _terminal = false;
   RemoteGameEngine? game;
   String? error;
   Map<String, dynamic>? lobby;
@@ -18,8 +22,9 @@ class OnlineConnection extends ChangeNotifier {
   Completer<void>? _joining;
   bool _disposed = false;
   Future<void> connect(String endpoint, Map<String, dynamic> request) async {
+    _endpoint = endpoint;
     final target = ServerEndpoint.parse(endpoint);
-    if (target.secure) {
+    if (target.secure && request['type'] != 'resume') {
       connectionStatus =
           'Despertando la habitación… puede tardar hasta un minuto.';
       notifyListeners();
@@ -44,9 +49,15 @@ class OnlineConnection extends ChangeNotifier {
     _socket = socket;
     connected = true;
     connectionStatus = null;
-    socket.listen(_receive,
-        onDone: () => _lost('Se perdió la conexión con la sala.'),
-        onError: (_) => _lost('No se pudo mantener la conexión.'));
+    socket.listen((raw) {
+      if (identical(_socket, socket)) _receive(raw);
+    }, onDone: () {
+      if (identical(_socket, socket)) {
+        _lost('Se perdió la conexión con la sala.');
+      }
+    }, onError: (_) {
+      if (identical(_socket, socket)) _lost('No se pudo mantener la conexión.');
+    });
     connectionStatus = 'Esperando la confirmación de la sala…';
     final joining = Completer<void>();
     _joining = joining;
@@ -66,7 +77,9 @@ class OnlineConnection extends ChangeNotifier {
 
   void send(Map<String, dynamic> message) {
     if (_socket?.readyState == WebSocket.open) {
-      _socket!.add(jsonEncode(message));
+      try {
+        _socket!.add(jsonEncode(message));
+      } on StateError {/* Socket is closing. */}
     }
   }
 
@@ -75,11 +88,18 @@ class OnlineConnection extends ChangeNotifier {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       switch (data['type']) {
+        case 'session':
+          _resumeRequest = {
+            'type': 'resume',
+            'code': data['code'],
+            'token': data['token']
+          };
         case 'lobby':
           lobby = data;
           error = null;
           if (!(_joining?.isCompleted ?? true)) _joining!.complete();
         case 'state':
+          if (!(_joining?.isCompleted ?? true)) _joining!.complete();
           game ??= RemoteGameEngine(
               this, GameRules(GameMode.values[data['mode'] as int]));
           game!.apply(data);
@@ -92,6 +112,8 @@ class OnlineConnection extends ChangeNotifier {
           }
           game?.showError(error!);
         case 'closed':
+          _terminal = true;
+          _resumeRequest = null;
           _lost(data['message'] as String);
       }
       notifyListeners();
@@ -110,10 +132,51 @@ class OnlineConnection extends ChangeNotifier {
     unawaited(_socket?.close() ?? Future<void>.value());
     game?.disconnected(message);
     notifyListeners();
+    if (!_terminal &&
+        _resumeRequest != null &&
+        !_retrying &&
+        _joining == null) {
+      unawaited(_reconnect());
+    }
+  }
+
+  Future<void> _reconnect() async {
+    _retrying = true;
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    while (!_disposed && !_terminal && DateTime.now().isBefore(deadline)) {
+      error = 'Intentando recuperar tu asiento…';
+      game?.disconnected(error!);
+      notifyListeners();
+      try {
+        await connect(_endpoint!, _resumeRequest!);
+        if (_disposed) break;
+        error = null;
+        notifyListeners();
+        _retrying = false;
+        return;
+      } on FormatException catch (e) {
+        _terminal = true;
+        error = e.message;
+        break;
+      } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
+    }
+    _retrying = false;
+    if (!_disposed) {
+      error ??= 'No se pudo recuperar la sala. Volvé al menú para crear otra.';
+      if (!_terminal) {
+        error = 'No se pudo recuperar la sala. Volvé al menú para crear otra.';
+      }
+      game?.disconnected(error!);
+      notifyListeners();
+    }
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
+    send({'type': 'leave'});
     _disposed = true;
     if (!(_joining?.isCompleted ?? true)) {
       _joining!.completeError(const SocketException('Conexión cancelada.'));
@@ -128,6 +191,16 @@ class OnlineConnection extends ChangeNotifier {
 class RemoteGameEngine extends GameEngine {
   final OnlineConnection connection;
   int seat = 0;
+  int round = 1;
+  int rematchCount = 0;
+  int humanCount = 0;
+  bool votedRematch = false;
+  void requestRematch() {
+    if (connection.connected && winner != null && !votedRematch) {
+      connection.send({'type': 'rematch'});
+    }
+  }
+
   int? _choiceId;
   ChoiceRequest? _remoteChoice;
   bool _disposed = false;
@@ -138,6 +211,11 @@ class RemoteGameEngine extends GameEngine {
   void apply(Map<String, dynamic> data) {
     if (_disposed) return;
     seat = data['seat'] as int;
+    round = data['round'] as int? ?? 1;
+    final votes = data['rematchVotes'] as List? ?? [];
+    rematchCount = votes.length;
+    humanCount = data['humanCount'] as int? ?? 0;
+    votedRematch = votes.contains(seat);
     final nextPlayers = <Player>[];
     known.clear();
     for (final raw in data['players'] as List) {
@@ -165,6 +243,9 @@ class RemoteGameEngine extends GameEngine {
     players = nextPlayers;
     turn = _local(data['turn'] as int);
     busy = data['busy'] as bool;
+    statusMessage = data['paused'] == true
+        ? 'La mesa espera a ${(data['missing'] as List).join(', ')}. Guardamos su asiento hasta 60 segundos.'
+        : null;
     winner = data['winner'] as String?;
     deck = List.filled(data['deckCount'] as int, '?');
     logs
@@ -227,6 +308,8 @@ class RemoteGameEngine extends GameEngine {
   void disconnected(String message) {
     busy = true;
     super.answer(null);
+    _choiceId = null;
+    _remoteChoice = null;
     showError(message);
   }
 

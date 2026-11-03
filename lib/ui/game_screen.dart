@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../engine.dart';
+import '../online/online_connection.dart';
 import '../dialogue.dart';
 import 'dialogue_box.dart';
 import '../game_config.dart';
@@ -48,7 +49,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     Sfx.i.init();
   }
 
+  int _round = 1;
   void _onEngine() {
+    final remote =
+        engine is RemoteGameEngine ? engine as RemoteGameEngine : null;
+    if (remote != null && remote.round != _round) {
+      _round = remote.round;
+      _pile.clear();
+      _seq = 0;
+      _line = DialogueDirector.opening;
+      _singFlash.reset();
+    }
     if (mounted) setState(() {});
   }
 
@@ -124,8 +135,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _restart() {
-    if (widget.session != null) {
-      Navigator.of(context).pop();
+    if (engine is RemoteGameEngine) {
+      (engine as RemoteGameEngine).requestRematch();
       return;
     }
     Sfx.i.tap();
@@ -173,9 +184,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   winner: engine.winner!,
                   youWon: engine.winner == engine.me.name,
                   onAgain: _restart,
-                  againLabel: widget.session == null
-                      ? 'Volver a despertar'
-                      : 'Salir de la sala',
+                  againLabel: engine is RemoteGameEngine
+                      ? (engine as RemoteGameEngine).votedRematch
+                          ? 'Esperando al resto…'
+                          : 'QUIERO REVANCHA'
+                      : 'Volver a despertar',
+                  onExit: widget.session == null
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  status: engine is RemoteGameEngine
+                      ? engine.statusMessage ??
+                          'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
+                      : null,
                 ),
             ],
           ),

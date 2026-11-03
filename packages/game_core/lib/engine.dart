@@ -33,7 +33,8 @@ class ChoiceRequest {
   final String desc;
   final List<ChoiceOption> options;
   final double? seconds;
-  final DateTime startedAt;
+  DateTime startedAt;
+  DateTime? pausedAt;
   final Completer<Object?> completer;
   final int playerId;
 
@@ -48,7 +49,9 @@ class ChoiceRequest {
 
   double get remaining {
     if (seconds == null) return 1;
-    final gone = DateTime.now().difference(startedAt).inMilliseconds / 1000.0;
+    final gone =
+        (pausedAt ?? DateTime.now()).difference(startedAt).inMilliseconds /
+            1000.0;
     return ((seconds! - gone) / seconds!).clamp(0.0, 1.0);
   }
 }
@@ -92,6 +95,46 @@ class GameEngine extends GameNotifier {
   bool _dead = false;
   Timer? _choiceTimer;
   int _gameId = 0;
+  Completer<void>? _resume;
+  bool get paused => _resume != null;
+
+  void setPaused(bool value) {
+    if (_dead || value == paused) return;
+    if (value) {
+      _resume = Completer<void>();
+      choice?.pausedAt = DateTime.now();
+      _choiceTimer?.cancel();
+      _choiceTimer = null;
+    } else {
+      final pending = choice;
+      if (pending?.pausedAt != null) {
+        pending!.startedAt =
+            pending.startedAt.add(DateTime.now().difference(pending.pausedAt!));
+        pending.pausedAt = null;
+      }
+      final resume = _resume!;
+      _resume = null;
+      _armChoiceTimer();
+      resume.complete();
+    }
+    _touch();
+  }
+
+  void _armChoiceTimer() {
+    final pending = choice;
+    if (paused || pending == null || pending.seconds == null) return;
+    _choiceTimer = Timer(
+        Duration(
+            microseconds:
+                (pending.seconds! * pending.remaining * 1000000).round()), () {
+      if (identical(choice, pending) && !pending.completer.isCompleted) {
+        choice = null;
+        _choiceTimer = null;
+        pending.completer.complete(null);
+        _touch();
+      }
+    });
+  }
 
   GameEngine(
       {this.rules = const GameRules(),
@@ -118,6 +161,8 @@ class GameEngine extends GameNotifier {
   @override
   void dispose() {
     _dead = true;
+    _resume?.complete();
+    _resume = null;
     _cancelPendingChoice();
     onFx = null;
     super.dispose();
@@ -270,24 +315,15 @@ class GameEngine extends GameNotifier {
       seconds: seconds,
       playerId: playerId,
     );
-    if (seconds != null) {
-      _choiceTimer =
-          Timer(Duration(milliseconds: (seconds * 1000).round()), () {
-        if (choice != null && choice!.completer == c && !c.isCompleted) {
-          choice = null;
-          _choiceTimer = null;
-          c.complete(null);
-          _touch();
-        }
-      });
-    }
+    if (paused) choice!.pausedAt = DateTime.now();
+    _armChoiceTimer();
     _touch();
     return c.future;
   }
 
   void answer(Object? value) {
     final c = choice;
-    if (c == null) return;
+    if (c == null || paused) return;
     _choiceTimer?.cancel();
     _choiceTimer = null;
     choice = null;
@@ -542,8 +578,12 @@ class GameEngine extends GameNotifier {
     _startTurn((turn + 1) % players.length);
   }
 
-  Future<void> _wait(int ms) =>
-      Future<void>.delayed(Duration(milliseconds: ms));
+  Future<void> _wait(int ms) async {
+    await Future<void>.delayed(Duration(milliseconds: ms));
+    while (!_dead && paused) {
+      await _resume!.future;
+    }
+  }
 
   // ------------------------------------------------------------------ IA ----
 

@@ -56,6 +56,7 @@ Future<void> main(List<String> args) async {
         'guest privacy');
     host.add(jsonEncode({'type': 'end'}));
     await next(gs, 'state', (m) => m['turn'] == 1 && m['busy'] == false);
+    host.add(jsonEncode({'type': 'leave'}));
     await host.close();
     await next(gs, 'closed');
     await guest.close();

@@ -186,15 +186,20 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: Text(p['name'] as String),
-                      subtitle:
-                          Text(p['seat'] == 0 ? 'Anfitrión' : 'Invitado')),
+                      subtitle: Text(p['connected'] == false
+                          ? 'Reconectando…'
+                          : p['seat'] == 0
+                              ? 'Anfitrión'
+                              : 'Invitado')),
                 const Text(
                     'De 2 a 4 personas. Los lugares vacíos los ocupan ecos controlados por el juego.',
                     style: SS.sub),
                 if (lobby['seat'] == 0)
                   FilledButton(
                       onPressed: !(_connection?.connected ?? false) ||
-                              (lobby['players'] as List).length < 2
+                              (lobby['players'] as List).length < 2 ||
+                              (lobby['players'] as List)
+                                  .any((p) => p['connected'] == false)
                           ? null
                           : () => _connection!.send({'type': 'start'}),
                       child: const Text('ABRIR LA PARTIDA'))

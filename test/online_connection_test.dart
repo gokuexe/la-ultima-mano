@@ -28,7 +28,7 @@ void main() {
     final socket = await accepted;
     final request = Completer<void>();
     socket.listen((raw) {
-      request.complete();
+      if (!request.isCompleted) request.complete();
     });
     await request.future;
     expect(ready, isFalse);

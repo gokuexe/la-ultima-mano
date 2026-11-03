@@ -12,8 +12,11 @@ typedef GameFactory = GameEngine Function(
 
 class RoomServer {
   final GameFactory _createGame;
+  final Duration reconnectGrace;
 
-  RoomServer({GameFactory? createGame})
+  RoomServer(
+      {GameFactory? createGame,
+      this.reconnectGrace = const Duration(seconds: 60)})
       : _createGame = createGame ?? _defaultGame;
 
   static GameEngine _defaultGame(
@@ -72,6 +75,9 @@ class RoomServer {
     final peers = List.of(_peers);
     for (final room in _rooms.values) {
       room.game?.dispose();
+      for (final peer in room.peers.values) {
+        peer.expiry?.cancel();
+      }
       room.peers.clear();
     }
     _rooms.clear();
@@ -102,6 +108,34 @@ class RoomServer {
     try {
       final message = jsonDecode(raw) as Map<String, dynamic>;
       final action = message['type'];
+      if (action == 'resume' && peer.room == null) {
+        final room = _rooms[message['code']];
+        final token = message['token'];
+        final matches = room?.peers.values
+            .where((p) => token is String && p.token == token);
+        if (room == null || matches == null || matches.isEmpty) {
+          throw const FormatException(
+              'La reserva de tu asiento terminó. Creá otra sala.');
+        }
+        final previous = matches.first;
+        previous.expiry?.cancel();
+        peer.name = previous.name;
+        peer.seat = previous.seat;
+        peer.token = previous.token;
+        peer.room = room;
+        room.peers[peer.seat] = peer;
+        previous.room = null;
+        _peers.remove(previous);
+        unawaited(previous.socket.close());
+        _session(peer);
+        room.game?.setPaused(room.peers.values.any((p) => p.expiry != null));
+        _broadcast(room);
+        return;
+      }
+      if (action == 'leave') {
+        _finishLeave(peer);
+        return;
+      }
       if (peer.room == null) {
         final name = (message['name'] as String? ?? '').trim();
         if (name.isEmpty || name.length > 20 || name.runes.any((c) => c < 32)) {
@@ -140,15 +174,36 @@ class RoomServer {
             .any((p) => p.name.toLowerCase() == name.toLowerCase())) {
           throw const FormatException('Ese nombre ya está en la sala.');
         }
+        peer.token =
+            base64Url.encode(List.generate(32, (_) => _random.nextInt(256)));
         peer.name = name;
         peer.seat = List.generate(4, (i) => i)
             .firstWhere((i) => !room.peers.containsKey(i));
         peer.room = room;
         room.peers[peer.seat] = peer;
+        _session(peer);
         _broadcast(room);
         return;
       }
       final room = peer.room!;
+      if (room.peers.values.any((p) => p.expiry != null)) {
+        throw const FormatException(
+            'Esperando a que vuelva una persona a la mesa.');
+      }
+      if (action == 'rematch') {
+        if (room.game?.winner == null || room.commandPending) {
+          throw const FormatException(
+              'La revancha se decide al terminar la partida.');
+        }
+        room.rematchVotes.add(peer.seat);
+        if (room.rematchVotes.length == room.peers.length) {
+          room.rematchVotes.clear();
+          room.round++;
+          room.game!.newGame();
+        }
+        _broadcast(room);
+        return;
+      }
       if (action == 'start') {
         if (peer.seat != 0 || room.game != null || room.peers.length < 2) {
           throw const FormatException(
@@ -281,7 +336,11 @@ class RoomServer {
           'seat': peer.seat,
           'mode': room.rules.mode.index,
           'players': room.peers.values
-              .map((p) => {'name': p.name, 'seat': p.seat})
+              .map((p) => {
+                    'name': p.name,
+                    'seat': p.seat,
+                    'connected': p.expiry == null
+                  })
               .toList(),
         });
       }
@@ -296,9 +355,17 @@ class RoomServer {
       peer.send({
         'type': 'state',
         'mode': game.rules.mode.index,
+        'round': room.round,
+        'rematchVotes': room.rematchVotes.toList(),
+        'humanCount': room.peers.length,
         'seat': peer.seat,
         'turn': game.turn,
-        'busy': game.busy || room.commandPending,
+        'busy': game.busy || room.commandPending || game.paused,
+        'paused': game.paused,
+        'missing': room.peers.values
+            .where((p) => p.expiry != null)
+            .map((p) => p.name)
+            .toList(),
         'winner': game.winner,
         'deckCount': game.deck.length,
         'players': game.players
@@ -320,7 +387,7 @@ class RoomServer {
                 })
             .toList(),
         'logs': game.logs.map((l) => {'text': l.text, 'loud': l.loud}).toList(),
-        'choice': choice != null && choice.playerId == peer.seat
+        'choice': !game.paused && choice != null && choice.playerId == peer.seat
             ? {
                 'id': room.choiceId,
                 'title': choice.title,
@@ -337,18 +404,36 @@ class RoomServer {
     }
   }
 
+  void _session(_Peer peer) {
+    peer.send(
+        {'type': 'session', 'code': peer.room!.code, 'token': peer.token});
+  }
+
   void _leave(_Peer peer) {
     if (!_peers.remove(peer)) return;
     final room = peer.room;
-    if (room == null) return;
+    if (room == null || !identical(room.peers[peer.seat], peer)) return;
+    peer.expiry = Timer(reconnectGrace, () => _finishLeave(peer));
+    room.game?.setPaused(true);
+    _broadcast(room);
+  }
+
+  void _finishLeave(_Peer peer) {
+    _peers.remove(peer);
+    peer.expiry?.cancel();
+    final room = peer.room;
+    if (room == null || !identical(room.peers[peer.seat], peer)) return;
     room.peers.remove(peer.seat);
+    peer.room = null;
+    unawaited(peer.socket.close());
     if (room.game != null || peer.seat == 0 || room.peers.isEmpty) {
       _rooms.remove(room.code);
       room.game?.dispose();
       for (final other in room.peers.values) {
+        other.expiry?.cancel();
         other.send({
           'type': 'closed',
-          'message': 'La sala terminó porque una persona se desconectó.'
+          'message': 'La sala terminó porque una persona se desconectó o salió.'
         });
         unawaited(other.socket.close());
         other.room = null;
@@ -364,6 +449,8 @@ class _Peer {
   final WebSocket socket;
   _Room? room;
   String name = '';
+  String token = '';
+  Timer? expiry;
   int seat = -1;
   DateTime window = DateTime.now();
   int messages = 0;
@@ -384,5 +471,7 @@ class _Room {
   bool commandPending = false;
   ChoiceRequest? lastChoice;
   int choiceId = 0;
+  int round = 1;
+  final Set<int> rematchVotes = {};
   _Room(this.code, this.rules);
 }

@@ -98,6 +98,7 @@ void main() {
     final next =
         await guest.next('state', (m) => m['turn'] == 1 && m['busy'] == false);
     expect(next['players'][1]['mana'], 3);
+    host.send({'type': 'leave'});
     await host.socket.close();
     expect((await guest.next('closed'))['message'], contains('desconectó'));
   });

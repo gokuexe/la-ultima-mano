@@ -136,3 +136,18 @@ espera hasta 90 segundos a que el servidor despierte y muestra su progreso.
 Las salas viven en memoria en una sola instancia: un reinicio termina las
 partidas. El servidor avisa a los clientes al recibir SIGTERM. El plan gratuito
 puede suspenderse o reiniciarse; usarlo inicialmente para pruebas.
+
+### Reconexión y revancha
+
+El servidor reserva cada asiento durante 60 segundos tras una desconexión.
+El cliente v3 intenta volver automáticamente mientras conserva abierta la
+aplicación. La partida y los tiempos de reacción quedan pausados hasta que
+regresen todas las personas. El código de sala no permite recuperar un asiento:
+se requiere una clave privada aleatoria que solo recibe su propietario y que
+se mantiene en memoria. Cerrar la aplicación pierde esa clave; un reinicio del
+servidor pierde las salas. Salir voluntariamente termina la participación sin
+esperar los 60 segundos.
+
+Al terminar, todas las personas deben pulsar «QUIERO REVANCHA». El servidor
+cuenta un solo voto por asiento y reparte una partida nueva dentro de la misma
+sala. La interfaz conserva los nombres y limpia la mesa anterior.

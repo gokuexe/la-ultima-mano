@@ -184,6 +184,8 @@ class EndOverlay extends StatefulWidget {
   final bool youWon;
   final VoidCallback onAgain;
   final String againLabel;
+  final VoidCallback? onExit;
+  final String? status;
 
   const EndOverlay({
     super.key,
@@ -191,6 +193,8 @@ class EndOverlay extends StatefulWidget {
     required this.youWon,
     required this.onAgain,
     this.againLabel = 'Volver a despertar',
+    this.onExit,
+    this.status,
   });
 
   @override
@@ -245,6 +249,12 @@ class _EndOverlayState extends State<EndOverlay>
                           : '${widget.winner} recordó primero. La habitación te reconoce.',
                       textAlign: TextAlign.center,
                       style: SS.sub),
+                  if (widget.status != null)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(widget.status!,
+                          textAlign: TextAlign.center, style: SS.sub),
+                    ),
                   const SizedBox(height: 26),
                   GestureDetector(
                     onTap: widget.onAgain,
@@ -265,6 +275,11 @@ class _EndOverlayState extends State<EndOverlay>
                       ),
                     ),
                   ),
+                  if (widget.onExit != null)
+                    TextButton(
+                      onPressed: widget.onExit,
+                      child: const Text('SALIR DE LA SALA'),
+                    ),
                 ],
               ),
             ),
