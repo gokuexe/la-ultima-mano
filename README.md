@@ -151,3 +151,21 @@ esperar los 60 segundos.
 Al terminar, todas las personas deben pulsar «QUIERO REVANCHA». El servidor
 cuenta un solo voto por asiento y reparte una partida nueva dentro de la misma
 sala. La interfaz conserva los nombres y limpia la mesa anterior.
+
+### Comodidad y guía de cartas
+
+«AJUSTES Y GUÍA DE CARTAS», en el menú y en la mesa, permite regular volumen,
+ampliar la lectura y reducir movimiento. Esta última opción elimina los
+principales destellos, sacudidas, confeti, entrada de cartas y escritura
+progresiva; las ventanas de reacción mantienen su duración. Se respeta también
+la preferencia de movimiento reducido del sistema.
+
+En Linux, los ajustes se guardan localmente en
+`$XDG_CONFIG_HOME/la_ultima_mano/preferences.json`, o en
+`$HOME/.config/la_ultima_mano/preferences.json` si XDG_CONFIG_HOME no está definido.
+No se envían al servidor. Si no se puede guardar, la pantalla avisa y los cambios
+siguen activos durante esa sesión.
+
+La guía contiene las 20 cartas con sus efectos y costes del mismo catálogo que
+usa el motor; permite buscar sin tildes y filtrar por familia. Abrirla no pausa
+la partida. El menú se desplaza cuando el texto grande necesita más espacio.

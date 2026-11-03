@@ -10,9 +10,12 @@ import 'theme.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_lobby.dart';
 import 'ui/archive_screen.dart';
+import 'play_preferences.dart';
+import 'ui/options_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PlayPreferences.instance.load();
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
     SystemChrome.setPreferredOrientations([
@@ -34,20 +37,31 @@ class LaUltimaManoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: Story.title,
-      debugShowCheckedModeBanner: false,
-      theme: SS.theme(),
-      // El juego está pensado para un celular. En una ventana de escritorio
-      // mucho más ancha (o más alta) que eso, en vez de dejarlo fijo y chico
-      // con bandas vacías a los costados, se escala para aprovechar el alto
-      // disponible, como haría un emulador.
-      builder: (context, child) => ColoredBox(
-        color: SS.table,
-        child: _ResponsiveStage(child: child!),
-      ),
-      home: const TitleScreen(),
-    );
+    return ListenableBuilder(
+        listenable: PlayPreferences.instance,
+        builder: (context, _) => MaterialApp(
+              title: Story.title,
+              debugShowCheckedModeBanner: false,
+              theme: SS.theme(),
+              // El juego está pensado para un celular. En una ventana de escritorio
+              // mucho más ancha (o más alta) que eso, en vez de dejarlo fijo y chico
+              // con bandas vacías a los costados, se escala para aprovechar el alto
+              // disponible, como haría un emulador.
+              builder: (context, child) => ColoredBox(
+                color: SS.table,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    disableAnimations:
+                        MediaQuery.disableAnimationsOf(context) ||
+                            PlayPreferences.instance.reduceMotion,
+                    textScaler: MediaQuery.textScalerOf(context).clamp(
+                        minScaleFactor: PlayPreferences.instance.textScale),
+                  ),
+                  child: _ResponsiveStage(child: child!),
+                ),
+              ),
+              home: const TitleScreen(),
+            ));
   }
 }
 
@@ -150,116 +164,153 @@ class _TitleScreenState extends State<TitleScreen>
                     0.8
                   ]),
             )),
-            IgnorePointer(
-                child: AnimatedBuilder(
-                    animation: _ambience,
-                    builder: (_, __) =>
-                        CustomPaint(painter: PixelDust(_ambience.value)))),
+            if (!MediaQuery.disableAnimationsOf(context))
+              IgnorePointer(
+                  child: AnimatedBuilder(
+                      animation: _ambience,
+                      builder: (_, __) =>
+                          CustomPaint(painter: PixelDust(_ambience.value)))),
             SafeArea(
                 child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                              builder: (_) => const ArchiveScreen())),
-                      child: const Text('ARCHIVO 067  /  NO CONFIAR EN NADIE',
-                          textAlign: TextAlign.center, style: SS.sub),
-                    ),
-                    const Spacer(flex: 3),
-                    const Text('LA ÚLTIMA\nMANO',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontFamily: 'Pixelify',
-                            fontSize: 58,
-                            height: 0.95,
-                            letterSpacing: 3,
-                            color: SS.ink,
-                            shadows: [
-                              Shadow(
-                                  color: Color(0xFF09090C),
-                                  offset: Offset(4, 4))
-                            ])),
-                    const SizedBox(height: 16),
-                    const Text(Story.subtitle,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 10, letterSpacing: 2, color: SS.mana)),
-                    const Spacer(),
-                    const Text(Story.opening,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 16, height: 1.55, color: SS.ink)),
-                    const SizedBox(height: 24),
-                    const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          PixelSigil(seed: 6, color: SS.rojoUp, size: 28),
-                          SizedBox(width: 16),
-                          Text('6  /  7', style: SS.title),
-                          SizedBox(width: 16),
-                          PixelSigil(seed: 7, color: SS.azulUp, size: 28),
-                        ]),
-                    const SizedBox(height: 12),
-                    const Text(Story.objective,
-                        textAlign: TextAlign.center, style: SS.sub),
-                    const Spacer(),
-                    const Text('ELEGÍ CÓMO RECORDAR',
-                        textAlign: TextAlign.center, style: SS.sub),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      for (final mode in GameMode.values)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                shape: const RoundedRectangleBorder(),
-                                side: BorderSide(
-                                    color: _mode == mode ? SS.mana : SS.line,
-                                    width: 2),
-                                foregroundColor:
-                                    _mode == mode ? SS.mana : SS.mute,
-                                backgroundColor:
-                                    SS.table.withValues(alpha: 0.8),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              onPressed: () => setState(() => _mode = mode),
-                              child: Text(GameRules(mode).label),
-                            ),
-                          ),
-                        )
-                    ]),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                        height: 42,
-                        child: Text(GameRules(_mode).blurb,
-                            textAlign: TextAlign.center, style: SS.sub)),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                          shape: const RoundedRectangleBorder(),
-                          backgroundColor: SS.mana,
-                          foregroundColor: SS.table,
-                          padding: const EdgeInsets.symmetric(vertical: 18)),
-                      onPressed: _begin,
-                      child: const Text('SENTARSE A LA MESA',
-                          style: TextStyle(fontSize: 19, letterSpacing: 2)),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                              builder: (_) => const OnlineLobbyScreen())),
-                      child: const Text('JUGAR ONLINE · SALA PRIVADA',
-                          style: TextStyle(color: SS.azulUp)),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text('Tres desconocidos. Una salida. Ningún reloj.',
-                        textAlign: TextAlign.center, style: SS.sub),
-                  ]),
+              child: LayoutBuilder(
+                  builder: (context, box) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: box.maxHeight),
+                          child: IntrinsicHeight(
+                              child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const ArchiveScreen())),
+                                  child: const Text(
+                                      'ARCHIVO 067  /  NO CONFIAR EN NADIE',
+                                      textAlign: TextAlign.center,
+                                      style: SS.sub),
+                                ),
+                                const Spacer(flex: 3),
+                                const Text('LA ÚLTIMA\nMANO',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontFamily: 'Pixelify',
+                                        fontSize: 58,
+                                        height: 0.95,
+                                        letterSpacing: 3,
+                                        color: SS.ink,
+                                        shadows: [
+                                          Shadow(
+                                              color: Color(0xFF09090C),
+                                              offset: Offset(4, 4))
+                                        ])),
+                                const SizedBox(height: 16),
+                                const Text(Story.subtitle,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        letterSpacing: 2,
+                                        color: SS.mana)),
+                                const Spacer(),
+                                const Text(Story.opening,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        height: 1.55,
+                                        color: SS.ink)),
+                                const SizedBox(height: 24),
+                                const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      PixelSigil(
+                                          seed: 6, color: SS.rojoUp, size: 28),
+                                      SizedBox(width: 16),
+                                      Text('6  /  7', style: SS.title),
+                                      SizedBox(width: 16),
+                                      PixelSigil(
+                                          seed: 7, color: SS.azulUp, size: 28),
+                                    ]),
+                                const SizedBox(height: 12),
+                                const Text(Story.objective,
+                                    textAlign: TextAlign.center, style: SS.sub),
+                                const Spacer(),
+                                const Text('ELEGÍ CÓMO RECORDAR',
+                                    textAlign: TextAlign.center, style: SS.sub),
+                                const SizedBox(height: 12),
+                                Row(children: [
+                                  for (final mode in GameMode.values)
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 3),
+                                        child: OutlinedButton(
+                                          style: OutlinedButton.styleFrom(
+                                            shape:
+                                                const RoundedRectangleBorder(),
+                                            side: BorderSide(
+                                                color: _mode == mode
+                                                    ? SS.mana
+                                                    : SS.line,
+                                                width: 2),
+                                            foregroundColor: _mode == mode
+                                                ? SS.mana
+                                                : SS.mute,
+                                            backgroundColor:
+                                                SS.table.withValues(alpha: 0.8),
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14),
+                                          ),
+                                          onPressed: () =>
+                                              setState(() => _mode = mode),
+                                          child: Text(GameRules(mode).label),
+                                        ),
+                                      ),
+                                    )
+                                ]),
+                                const SizedBox(height: 10),
+                                ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(minHeight: 42),
+                                    child: Text(GameRules(_mode).blurb,
+                                        textAlign: TextAlign.center,
+                                        style: SS.sub)),
+                                const SizedBox(height: 10),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                      shape: const RoundedRectangleBorder(),
+                                      backgroundColor: SS.mana,
+                                      foregroundColor: SS.table,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 18)),
+                                  onPressed: _begin,
+                                  child: const Text('SENTARSE A LA MESA',
+                                      style: TextStyle(
+                                          fontSize: 19, letterSpacing: 2)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const OnlineLobbyScreen())),
+                                  child: const Text(
+                                      'JUGAR ONLINE · SALA PRIVADA',
+                                      style: TextStyle(color: SS.azulUp)),
+                                ),
+                                TextButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const OptionsScreen())),
+                                    child:
+                                        const Text('AJUSTES Y GUÍA DE CARTAS')),
+                                const SizedBox(height: 10),
+                                const Text(
+                                    'Tres desconocidos. Una salida. Ningún reloj.',
+                                    textAlign: TextAlign.center,
+                                    style: SS.sub),
+                              ]))))),
             )),
           ],
         ),

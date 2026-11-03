@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../engine.dart';
 import '../online/online_connection.dart';
+import '../play_preferences.dart';
+import 'options_screen.dart';
 import '../dialogue.dart';
 import 'dialogue_box.dart';
 import '../game_config.dart';
@@ -101,7 +103,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case FxKind.sing:
         setState(() => _singActor = fx.actorName ?? '');
-        _singFlash.forward(from: 0);
+        if (!MediaQuery.disableAnimationsOf(context)) {
+          _singFlash.forward(from: 0);
+        }
         Sfx.i.play('sing');
         Sfx.i.thump();
         break;
@@ -253,7 +257,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               const Text(Story.title, style: SS.title),
               const SizedBox(height: 2),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 280),
                 transitionBuilder: (child, animation) => FadeTransition(
                   opacity: animation,
                   child: SlideTransition(
@@ -286,7 +292,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           onPressed: () => Navigator.of(context).pop(),
         ),
         IconButton(
-          onPressed: () => setState(() => Sfx.i.muted = !Sfx.i.muted),
+          tooltip: 'Ajustes y guía',
+          icon: const Icon(Icons.tune, color: SS.mute, size: 20),
+          onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const OptionsScreen())),
+        ),
+        IconButton(
+          onPressed: () =>
+              PlayPreferences.instance.update(volume: Sfx.i.muted ? 1 : 0),
           icon: Icon(
             Sfx.i.muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
             color: SS.mute,

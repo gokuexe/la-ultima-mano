@@ -79,7 +79,10 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
         child: FadeTransition(
           opacity: _enter,
           child: ScaleTransition(
-            scale: Tween(begin: 0.92, end: 1.0).animate(
+            scale: Tween(
+                    begin: MediaQuery.disableAnimationsOf(context) ? 1.0 : 0.92,
+                    end: 1.0)
+                .animate(
               CurvedAnimation(parent: _enter, curve: Curves.easeOutBack),
             ),
             child: ConstrainedBox(
@@ -221,7 +224,7 @@ class _EndOverlayState extends State<EndOverlay>
         color: const Color(0xF00A1219),
         child: Stack(
           children: [
-            if (widget.youWon)
+            if (widget.youWon && !MediaQuery.disableAnimationsOf(context))
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _c,
@@ -340,6 +343,9 @@ class SingFlash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      return const Positioned.fill(child: SizedBox.shrink());
+    }
     return Positioned.fill(
       child: IgnorePointer(
         child: AnimatedBuilder(

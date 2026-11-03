@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +26,18 @@ class Sfx {
   final Map<String, AudioPlayer> _players = {};
   bool _ready = false;
   bool muted = false;
+  double _masterVolume = 1;
+  final Map<String, double> _lastVolumes = {};
+  double get masterVolume => _masterVolume;
+  set masterVolume(double value) {
+    _masterVolume = value.clamp(0, 1);
+    for (final entry in _players.entries) {
+      unawaited(entry.value
+          .setVolume(
+              ((_lastVolumes[entry.key] ?? 0.85) * _masterVolume).clamp(0, 1))
+          .catchError((Object _) {}));
+    }
+  }
 
   Future<void> init() async {
     if (_ready) return;
@@ -34,7 +47,7 @@ class Sfx {
         await p.setReleaseMode(ReleaseMode.stop);
         await p.setPlayerMode(PlayerMode.lowLatency);
         await p.setSource(AssetSource('audio/$n.wav'));
-        await p.setVolume(0.85);
+        await p.setVolume(0.85 * masterVolume);
         _players[n] = p;
       } catch (e) {
         debugPrint('No se pudo cargar el sonido $n: $e');
@@ -48,7 +61,8 @@ class Sfx {
     final p = _players[name];
     if (p == null) return;
     try {
-      await p.setVolume(volume);
+      _lastVolumes[name] = volume;
+      await p.setVolume((volume * masterVolume).clamp(0.0, 1.0));
       await p.seek(Duration.zero);
       await p.resume();
     } catch (e) {

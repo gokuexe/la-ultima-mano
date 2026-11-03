@@ -198,7 +198,7 @@ class _PlayedPileState extends State<PlayedPile>
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
-            final c = _c.value;
+            final c = MediaQuery.disableAnimationsOf(context) ? 1.0 : _c.value;
             return Stack(
               alignment: Alignment.center,
               children: [

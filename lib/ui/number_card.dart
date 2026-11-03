@@ -89,10 +89,13 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: Listenable.merge([_pulse, _burn, _glow]),
         builder: (context, _) {
-          final b = _burn.value;
+          final reduced = MediaQuery.disableAnimationsOf(context);
+          final b = reduced ? 0.0 : _burn.value;
+          final glow = reduced ? 0.0 : _glow.value;
           final shake =
               b > 0 && b < 1 ? math.sin(b * math.pi * 9) * (1 - b) * 11 : 0.0;
-          final scale = 1 + 0.07 * math.sin(_pulse.value * math.pi);
+          final scale =
+              reduced ? 1.0 : 1 + 0.07 * math.sin(_pulse.value * math.pi);
 
           return Transform.translate(
             offset: Offset(shake, 0),
@@ -115,16 +118,14 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                         color: widget.selectable
                             ? SS.mana
                             : widget.win
-                                ? SS.win
-                                    .withValues(alpha: 0.5 + 0.5 * _glow.value)
+                                ? SS.win.withValues(alpha: 0.5 + 0.5 * glow)
                                 : up,
                         width: widget.selectable || widget.win ? 2.5 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
                           color: (widget.win ? SS.win : base).withValues(
-                              alpha:
-                                  widget.win ? 0.25 + 0.3 * _glow.value : 0.28),
+                              alpha: widget.win ? 0.25 + 0.3 * glow : 0.28),
                           blurRadius: widget.win ? 26 : 16,
                           spreadRadius: widget.win ? 2 : 0,
                           offset: const Offset(0, 6),
@@ -145,7 +146,9 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 280),
+                              duration: MediaQuery.disableAnimationsOf(context)
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 280),
                               switchInCurve: Curves.easeOutBack,
                               transitionBuilder: (child, anim) {
                                 final dir = _up ? 1.0 : -1.0;
