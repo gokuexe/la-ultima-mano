@@ -1,0 +1,12 @@
+**
+!packages/
+!packages/game_core/
+!packages/game_core/**
+!server/
+!server/**
+**/.dart_tool
+**/build
+**/.git
+**/*.log
+**/.env
+**/.env.*

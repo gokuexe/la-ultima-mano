@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -51,69 +52,72 @@ class MiniCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final v = visualFor(cardId);
 
-    return Container(
-      width: 64,
-      height: 86,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(SS.surfaceUp, v.color, 0.18)!,
-            Color.lerp(SS.surface, v.color, 0.06)!,
-          ],
-        ),
-        border: Border.all(
-          color: blocked ? SS.rojo : v.color.withValues(alpha: 0.6),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 9,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: v.color.withValues(alpha: 0.22),
-            blurRadius: 14,
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              PixelSigil(
-                  seed: cardId.codeUnits.fold(0, (a, b) => a + b),
-                  size: 32,
-                  color: v.color),
-              const SizedBox(height: 5),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  v.social,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 8,
-                    height: 1.15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-              ),
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        width: 64,
+        height: 86,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.zero,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(SS.surfaceUp, v.color, 0.18)!,
+              Color.lerp(SS.surface, v.color, 0.06)!,
             ],
           ),
-          if (blocked)
-            Positioned.fill(
-              child: CustomPaint(painter: _BlockedPainter()),
+          border: Border.all(
+            color: blocked ? SS.rojo : v.color.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 9,
+              offset: const Offset(0, 4),
             ),
-        ],
+            BoxShadow(
+              color: v.color.withValues(alpha: 0.22),
+              blurRadius: 14,
+              spreadRadius: -2,
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                PixelSigil(
+                    seed: cardId.codeUnits.fold(0, (a, b) => a + b),
+                    size: 32,
+                    color: v.color),
+                const SizedBox(height: 5),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: GameText(
+                    v.social,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 8,
+                      height: 1.15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (blocked)
+              Positioned.fill(
+                child: CustomPaint(painter: _BlockedPainter()),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -195,7 +199,7 @@ class _PlayedPileState extends State<PlayedPile>
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
-            final c = _c.value;
+            final c = MediaQuery.disableAnimationsOf(context) ? 1.0 : _c.value;
             return Stack(
               alignment: Alignment.center,
               children: [
@@ -209,7 +213,7 @@ class _PlayedPileState extends State<PlayedPile>
                     _landing(visible[i], c),
 
                 if (visible.isEmpty)
-                  Text(
+                  GameText(
                     'la mesa está limpia',
                     style: SS.sub.copyWith(
                         fontSize: 11, color: SS.mute.withValues(alpha: 0.5)),
@@ -249,7 +253,7 @@ class _PlayedPileState extends State<PlayedPile>
                       opacity: c < 0.15
                           ? c / 0.15
                           : (c > 0.8 ? ((1 - c) / 0.2).clamp(0.0, 1.0) : 1.0),
-                      child: Text(
+                      child: GameText(
                         '${visible.last.actor} · '
                         '${visualFor(visible.last.cardId).social}',
                         style: TextStyle(
@@ -341,7 +345,7 @@ class DeckStack extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              child: Text(
+              child: GameText(
                 '$count',
                 style: SS.numStyle.copyWith(fontSize: 11, color: SS.mute),
               ),
@@ -381,11 +385,11 @@ class _CardBack extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('6',
+            GameText('6',
                 style: SS.numStyle.copyWith(
                     fontSize: 22, color: Colors.white.withValues(alpha: 0.14))),
             const SizedBox(width: 4),
-            Text('7',
+            GameText('7',
                 style: SS.numStyle.copyWith(
                     fontSize: 22, color: Colors.white.withValues(alpha: 0.14))),
           ],
@@ -406,12 +410,12 @@ class _Watermark extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('6',
+            GameText('6',
                 style: SS.numStyle.copyWith(
                     fontSize: 96,
                     color: Colors.white.withValues(alpha: 0.035))),
             const SizedBox(width: 18),
-            Text('7',
+            GameText('7',
                 style: SS.numStyle.copyWith(
                     fontSize: 96,
                     color: Colors.white.withValues(alpha: 0.035))),

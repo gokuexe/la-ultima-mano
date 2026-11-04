@@ -51,6 +51,14 @@ jobs:
       - name: Bajar dependencias
         run: flutter pub get
 
+      - name: Compilar y comprobar el servidor independiente
+        working-directory: server
+        run: |
+          dart pub get
+          dart analyze
+          dart compile exe bin/server.dart -o /tmp/la-ultima-mano-server
+          dart run tool/compiled_smoke.dart /tmp/la-ultima-mano-server
+
       - name: Ejecutar pruebas
         run: flutter test
 
@@ -68,3 +76,19 @@ jobs:
           name: la-ultima-mano-linux
           path: LaUltimaMano-Linux.tar.gz
 
+
+  web:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: node tool/portal_bridge_test.cjs
+      - run: flutter build web --release --no-web-resources-cdn --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+      - run: python3 tool/package_gamemonetize.py --output LaUltimaMano-GameMonetize.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: la-ultima-mano-web
+          path: LaUltimaMano-GameMonetize.zip

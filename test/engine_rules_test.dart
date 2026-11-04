@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:la_ultima_mano/engine.dart';
 import 'package:la_ultima_mano/game_config.dart';
-import 'package:la_ultima_mano/model.dart';
 
 void main() {
   test('modo rápido: maná inicial y tope de mano', () {

@@ -9,5 +9,6 @@ void main() {
 
     expect(find.text('LA ÚLTIMA\nMANO'), findsOneWidget);
     expect(find.text('SENTARSE A LA MESA'), findsOneWidget);
+    expect(find.text('JUGAR ONLINE · SALA PRIVADA'), findsOneWidget);
   });
 }

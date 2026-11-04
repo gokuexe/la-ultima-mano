@@ -1,0 +1,9 @@
+name: la_ultima_mano_server
+description: Servidor de salas privadas de La Última Mano.
+publish_to: none
+version: 0.1.0
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  game_core:
+    path: ../packages/game_core

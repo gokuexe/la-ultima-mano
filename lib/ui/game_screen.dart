@@ -1,7 +1,15 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../engine.dart';
+import '../online/online_connection.dart';
+import '../play_preferences.dart';
+import '../chapter.dart';
+import '../portal/portal_ads.dart';
+import 'options_screen.dart';
+import '../dialogue.dart';
+import 'dialogue_box.dart';
 import '../game_config.dart';
 import '../model.dart';
 import '../sfx.dart';
@@ -14,18 +22,27 @@ import 'pile.dart';
 
 class GameScreen extends StatefulWidget {
   final GameRules rules;
+  final GameEngine? session;
+  final MemoryPath? chapterMemory;
 
-  const GameScreen({super.key, this.rules = const GameRules()});
+  const GameScreen(
+      {super.key,
+      this.rules = const GameRules(),
+      this.session,
+      this.chapterMemory});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
-  late final GameEngine engine = GameEngine(rules: widget.rules);
+  late final GameEngine engine =
+      widget.session ?? GameEngine(rules: widget.rules);
 
   final List<PlayedEntry> _pile = [];
   int _seq = 0;
+  final DialogueDirector _dialogue = DialogueDirector();
+  late DialogueLine _line = _dialogue.beginRound(1);
   final ScrollController _handScroll = ScrollController();
 
   late final AnimationController _singFlash = AnimationController(
@@ -37,16 +54,36 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    if (widget.chapterMemory != null) {
+      _line = DialogueLine(
+          'La habitación', ChapterOne.opening(widget.chapterMemory!));
+    }
+    if (engine is! RemoteGameEngine) PortalAds.instance.attach(engine);
     engine.onFx = _handleFx;
     engine.addListener(_onEngine);
     Sfx.i.init();
   }
 
+  int _round = 1;
   void _onEngine() {
+    final remote =
+        engine is RemoteGameEngine ? engine as RemoteGameEngine : null;
+    if (remote != null && remote.round != _round) {
+      _round = remote.round;
+      _pile.clear();
+      _seq = 0;
+      _line = _dialogue.beginRound(_round);
+      _singFlash.reset();
+    }
     if (mounted) setState(() {});
   }
 
   void _handleFx(Fx fx) {
+    final actor = fx.actorName ??
+        (fx.playerId == null ? '' : engine.players[fx.playerId!].name);
+    final line =
+        _dialogue.react(fx, actor, allowNpcVoice: widget.session == null);
+    if (line != null && mounted) setState(() => _line = line);
     switch (fx.kind) {
       case FxKind.play:
         final id = fx.cardId;
@@ -70,8 +107,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (fx.playerId == 0) Sfx.i.heavy();
         break;
       case FxKind.block:
-        // la carta cancelada queda en la pila, tachada
-        if (_pile.isNotEmpty) {
+        // Denying an escape does not cancel the previous card on the table.
+        if (_pile.isNotEmpty && fx.cardId != 'desmentir') {
           setState(() => _pile.last.blocked = true);
         }
         Sfx.i.play('block');
@@ -79,7 +116,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case FxKind.sing:
         setState(() => _singActor = fx.actorName ?? '');
-        _singFlash.forward(from: 0);
+        if (!MediaQuery.disableAnimationsOf(context)) {
+          _singFlash.forward(from: 0);
+        }
         Sfx.i.play('sing');
         Sfx.i.thump();
         break;
@@ -105,6 +144,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    PortalAds.instance.detach(engine);
     engine.removeListener(_onEngine);
     engine.onFx = null;
     engine.dispose();
@@ -113,13 +153,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _restart() {
+  bool _restarting = false;
+  Future<void> _restart() async {
+    if (_restarting) return;
+    if (widget.chapterMemory != null) {
+      Navigator.of(context).pop(engine.winner == engine.me.name);
+      return;
+    }
+    if (engine is RemoteGameEngine) {
+      (engine as RemoteGameEngine).requestRematch();
+      return;
+    }
+    _restarting = true;
     Sfx.i.tap();
+    await PortalAds.instance.requestBreak();
+    if (!mounted) return;
     setState(() {
       _pile.clear();
       _seq = 0;
+      _line = _dialogue.beginRound(1);
     });
     engine.newGame();
+    _restarting = false;
   }
 
   @override
@@ -138,8 +193,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   child: Center(
                     child: SizedBox(
                       width: constraints.maxWidth.clamp(0.0, 1000.0),
-                      height: constraints.maxHeight < 900
-                          ? 900
+                      height: constraints.maxHeight < 1000
+                          ? 1000
                           : constraints.maxHeight,
                       child: _table(me, myTurn),
                     ),
@@ -156,8 +211,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               if (engine.winner != null)
                 EndOverlay(
                   winner: engine.winner!,
-                  youWon: engine.winner == 'Vos',
+                  youWon: engine.winner == engine.me.name,
                   onAgain: _restart,
+                  againLabel: widget.chapterMemory != null
+                      ? 'LEER DESENLACE'
+                      : engine is RemoteGameEngine
+                          ? (engine as RemoteGameEngine).votedRematch
+                              ? 'Esperando al resto…'
+                              : 'QUIERO REVANCHA'
+                          : 'Volver a despertar',
+                  onExit: widget.session == null
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  status: engine is RemoteGameEngine
+                      ? engine.statusMessage ??
+                          'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
+                      : null,
                 ),
             ],
           ),
@@ -178,7 +247,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           _header(),
           const SizedBox(height: 10),
           _rivals(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          DialogueBox(line: _line),
+          const SizedBox(height: 8),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,10 +280,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(Story.title, style: SS.title),
+              const GameText(Story.title, style: SS.title),
               const SizedBox(height: 2),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 280),
                 transitionBuilder: (child, animation) => FadeTransition(
                   opacity: animation,
                   child: SlideTransition(
@@ -223,10 +296,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     child: child,
                   ),
                 ),
-                child: Text(
+                child: GameText(
                   engine.winner != null
                       ? 'Partida terminada'
-                      : 'Turno de ${engine.current.name}',
+                      : engine.statusMessage ??
+                          'Turno de ${engine.current.name}',
                   key: ValueKey('${engine.turn}-${engine.winner}'),
                   style: SS.sub.copyWith(
                     color: engine.myTurn ? SS.win : SS.mute,
@@ -234,18 +308,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 2),
-              Text('Modo ${engine.rules.label}', style: SS.sub),
+              GameText(
+                  'Modo ${engine.rules.label}${widget.chapterMemory == null ? '' : ' · Capítulo 01'}',
+                  style: SS.sub),
             ],
           ),
         ),
         IconButton(
-          onPressed: () => setState(() => Sfx.i.muted = !Sfx.i.muted),
+          tooltip: context.tr('Salir de la mesa'),
+          icon: const Icon(Icons.exit_to_app, color: SS.mute, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        IconButton(
+          tooltip: context.tr('Ajustes y guía'),
+          icon: const Icon(Icons.tune, color: SS.mute, size: 20),
+          onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const OptionsScreen())),
+        ),
+        IconButton(
+          onPressed: () =>
+              PlayPreferences.instance.update(volume: Sfx.i.muted ? 1 : 0),
           icon: Icon(
             Sfx.i.muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
             color: SS.mute,
             size: 21,
           ),
-          tooltip: Sfx.i.muted ? 'Activar sonido' : 'Silenciar',
+          tooltip: context.tr(Sfx.i.muted ? 'Activar sonido' : 'Silenciar'),
         ),
       ],
     );
@@ -300,16 +388,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       children: [
         Row(
           children: [
-            const Text('Lucidez ', style: SS.sub),
+            const GameText('Lucidez ', style: SS.sub),
             ManaPips(value: me.mana, max: 7),
             const SizedBox(width: 8),
-            Text(
+            GameText(
               me.free > 0 ? '${me.mana} · ${me.free} gratis' : '${me.mana}',
               style: SS.sub,
             ),
           ],
         ),
-        Text(
+        GameText(
           me.isWin ? 'lo recordás' : 'distancia: ${me.distance}',
           style: SS.sub.copyWith(color: me.isWin ? SS.win : SS.mute),
         ),
@@ -450,7 +538,7 @@ class _Btn extends StatelessWidget {
         ),
         child: Opacity(
           opacity: enabled ? 1 : 0.35,
-          child: Text(
+          child: GameText(
             label,
             style: TextStyle(
               fontSize: 13,

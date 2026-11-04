@@ -1,3 +1,4 @@
+import '../l10n/game_text.dart';
 import 'package:flutter/material.dart';
 
 import '../engine.dart';
@@ -49,8 +50,9 @@ class RivalPanel extends StatelessWidget {
         children: [
           PixelPortrait(character: player.id - 1, active: active),
           const SizedBox(height: 4),
-          Text(
+          GameText(
             player.name,
+            translate: false,
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
@@ -67,7 +69,7 @@ class RivalPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text('${player.hand.length} cartas',
+          GameText('${player.hand.length} cartas',
               style: const TextStyle(fontSize: 9.5, color: SS.mute)),
           const SizedBox(height: 4),
           ManaPips(value: player.mana, max: 5, size: 5),
@@ -92,7 +94,7 @@ class RivalPanel extends StatelessWidget {
               : Colors.white.withValues(alpha: 0.06),
         ),
       ),
-      child: Text(
+      child: GameText(
         known ? '$value' : '?',
         style: SS.numStyle.copyWith(
           fontSize: 15,
@@ -202,7 +204,7 @@ class _LogViewState extends State<LogView> {
           final last = i == widget.entries.length - 1;
           return Padding(
             padding: const EdgeInsets.only(bottom: 3),
-            child: Text(
+            child: GameText(
               e.text,
               style: TextStyle(
                 fontSize: 12,
@@ -259,7 +261,7 @@ class _HandCardState extends State<HandCard> {
               padding: const EdgeInsets.fromLTRB(8, 6, 4, 4),
               child: Row(children: [
                 Expanded(
-                    child: Text(v.ribbon,
+                    child: GameText(v.ribbon,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -269,7 +271,8 @@ class _HandCardState extends State<HandCard> {
                     height: 24,
                     child: IconButton(
                         padding: EdgeInsets.zero,
-                        tooltip: _back ? 'Ver efecto' : 'Leer recuerdo',
+                        tooltip:
+                            context.tr(_back ? 'Ver efecto' : 'Leer recuerdo'),
                         onPressed: () => setState(() => _back = !_back),
                         icon: Icon(Icons.flip, size: 16, color: SS.mute))),
               ])),
@@ -301,23 +304,23 @@ class _HandCardState extends State<HandCard> {
                   color: SS.table, border: Border.all(color: SS.line)),
               child:
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text('┌', style: TextStyle(color: accent)),
+                GameText('┌', style: TextStyle(color: accent)),
                 PixelSigil(
                     seed: widget.card.id.codeUnits.fold(0, (a, b) => a + b),
                     color: accent,
                     size: 68),
-                Text('┘', style: TextStyle(color: accent)),
+                GameText('┘', style: TextStyle(color: accent)),
               ])),
           Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-              child: Text(widget.card.name.toUpperCase(),
+              child: GameText(widget.card.name.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: 15, height: 1.05, color: SS.ink))),
           Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
+              child: GameText(
                   '${widget.card.cost} LUCIDEZ${widget.card.isReaction ? ' · RESPUESTA' : ''}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -326,7 +329,7 @@ class _HandCardState extends State<HandCard> {
           Expanded(
               child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(widget.card.desc,
+                  child: GameText(widget.card.desc,
                       maxLines: 5,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -334,7 +337,7 @@ class _HandCardState extends State<HandCard> {
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               color: SS.table,
-              child: Text(
+              child: GameText(
                   widget.enabled ? '▶ JUGAR RECUERDO' : 'ESPERÁ TU MOMENTO',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -349,13 +352,13 @@ class _HandCardState extends State<HandCard> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           PixelSigil(seed: widget.card.id.length, color: v.color, size: 54),
           const SizedBox(height: 16),
-          Text(v.post.replaceAll('*', ''),
+          GameText(v.post.replaceAll('*', ''),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, height: 1.3, color: SS.ink)),
           const SizedBox(height: 16),
-          Text(v.stamp, style: TextStyle(fontSize: 10, color: v.color)),
+          GameText(v.stamp, style: TextStyle(fontSize: 10, color: v.color)),
           const SizedBox(height: 12),
-          const Text('Tocá para volver', style: SS.sub),
+          const GameText('Tocá para volver', style: SS.sub),
         ]),
       );
 }
