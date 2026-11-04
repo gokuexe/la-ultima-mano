@@ -20,6 +20,8 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   la_ultima_mano_server:
     path: server
   flutter_test:

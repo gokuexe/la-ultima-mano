@@ -231,3 +231,45 @@ portadas JPG (512×384, 512×512 y 512×340). La verificación real de SDK y la
 activación se comprueban desde su panel; una compilación aprobada no equivale
 a aprobación editorial. El trabajo del portal no incorpora una licencia
 general nueva al código heredado.
+
+### Android (APK para pruebas)
+
+El proyecto Android usa el identificador `com.gokuexe.la_ultima_mano`, nombre
+«La Última Mano», icono propio y pantalla inicial oscura. Incluye partida local,
+Capítulo 01, español/inglés y salas privadas por WSS. Los ajustes y el progreso
+se guardan en el directorio privado de la app, obtenido desde Android; no pide
+acceso a los archivos del teléfono. Las conexiones sin cifrar no están habilitadas.
+El SDK de anuncios de GameMonetize pertenece a la edición web; esta APK no
+integra un SDK de publicidad Android.
+
+Con Flutter, Java y el SDK Android instalados:
+
+```bash
+flutter pub get
+flutter build apk --release --split-per-abi --target-platform android-arm64 --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+```
+
+La APK ARM64 está en `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`.
+Para mantener bajo el consumo local se compila una arquitectura por vez, con
+dos trabajadores y un heap de Gradle limitado a 2 GiB. Ejecutar las pruebas con
+`flutter test --concurrency=1`; no iniciar un emulador mientras se compila. Esta primera
+compilación optimizada usa firma de desarrollo para instalar y probar. Antes de
+publicarla en Google Play hay que configurar una clave de subida privada y
+preparar un AAB; no subir claves ni `key.properties` al repositorio. Las APK
+creadas en máquinas distintas pueden usar firmas de desarrollo distintas.
+GitHub Actions guarda una APK de prueba en cada ejecución del job Android.
+
+Prueba automatizada en un emulador o teléfono Android de desarrollo:
+
+```bash
+flutter test integration_test/android_smoke_test.dart -d DEVICE_ID
+# Opcional: probar también el servidor público y cerrar ambas conexiones al terminar.
+flutter test integration_test/android_smoke_test.dart -d DEVICE_ID --dart-define=TEST_ONLINE=true --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+```
+
+La prueba de integración está preparada para comprobar el guardado privado,
+el idioma tras volver a cargar los ajustes, el progreso y la apertura de una
+mesa local con lectura ampliada. Requiere un dispositivo Android y se ejecuta
+por separado de la compilación; la preparación del test no implica que se haya
+probado en un teléfono físico.
+La comprobación opcional online crea una sala y conecta dos clientes por TLS.
