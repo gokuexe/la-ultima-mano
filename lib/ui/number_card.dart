@@ -107,7 +107,8 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                 children: [
                   Container(
                     width: double.infinity,
-                    height: 104,
+                    height:
+                        112 * (MediaQuery.textScalerOf(context).scale(16) / 16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.zero,
                       gradient: LinearGradient(
@@ -167,15 +168,15 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                               child: GameText(
                                 '${widget.value}',
                                 key: ValueKey<int>(widget.value),
-                                style: SS.numStyle.copyWith(fontSize: 46),
+                                style: SS.numStyle.copyWith(fontSize: 48),
                               ),
                             ),
                             const SizedBox(height: 2),
                             GameText(
                               widget.isRed ? 'RECUERDO ROJO' : 'RECUERDO AZUL',
                               style: TextStyle(
-                                fontSize: 10.5,
-                                letterSpacing: 1.6,
+                                fontSize: 14,
+                                letterSpacing: 0.3,
                                 color: Colors.white.withValues(alpha: 0.75),
                               ),
                             ),

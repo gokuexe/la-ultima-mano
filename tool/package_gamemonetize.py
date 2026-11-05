@@ -36,10 +36,12 @@ with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as a
             parser.error(f'Unexpected hidden file: {relative}')
         archive.write(file, relative.as_posix())
     archive.write('assets/fonts/OFL.txt', 'licenses/Pixelify-SIL-OFL.txt')
+    archive.write('assets/fonts/LiberationSans-LICENSE.txt', 'licenses/LiberationSans-SIL-OFL.txt')
     archive.writestr('CREDITS.txt',
         'La Última Mano\nBased on Sick Seven by Monguit0: https://github.com/Monguit0/sick-seven\n'
         'Linux adaptation and redesign: https://github.com/gokuexe/la-ultima-mano\n'
         'Pixelify Sans: SIL Open Font License (included).\n'
+        'Liberation Sans: SIL Open Font License (included).\n'
         'Distribution rights are managed by the project maintainer.\n')
 with zipfile.ZipFile(temporary) as archive:
     if archive.testzip() is not None or 'index.html' not in archive.namelist():

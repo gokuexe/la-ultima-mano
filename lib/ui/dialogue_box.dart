@@ -46,7 +46,7 @@ class _DialogueBoxState extends State<DialogueBox> {
                 GameText(line.speaker.toUpperCase(),
                     translate: false,
                     style: const TextStyle(
-                        fontSize: 10, letterSpacing: 1, color: SS.mana)),
+                        fontSize: 14, letterSpacing: 1, color: SS.mana)),
                 const SizedBox(height: 4),
                 // Reserve the complete paragraph's height as letters appear.
                 Stack(children: [
@@ -56,7 +56,7 @@ class _DialogueBoxState extends State<DialogueBox> {
                           child: GameText(line.text,
                               translate: false,
                               style: const TextStyle(
-                                  fontSize: 13, height: 1.2, color: SS.ink)))),
+                                  fontSize: 16, height: 1.4, color: SS.ink)))),
                   TweenAnimationBuilder<double>(
                     key: ValueKey('${line.speaker}-${line.text}-$instant'),
                     tween: Tween(begin: instant ? 1 : 0, end: 1),
@@ -68,7 +68,7 @@ class _DialogueBoxState extends State<DialogueBox> {
                             .take((line.text.runes.length * t).ceil())),
                         translate: false,
                         style: const TextStyle(
-                            fontSize: 13, height: 1.2, color: SS.ink)),
+                            fontSize: 16, height: 1.4, color: SS.ink)),
                   ),
                 ]),
               ],

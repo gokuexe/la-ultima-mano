@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// A limited palette: old paper, bruised shadows and amber lamplight.
 class SS {
+  static const readingFamily = 'LiberationSans';
   static const table = Color(0xFF101015);
   static const tableUp = Color(0xFF242029);
   static const surface = Color(0xFF211F26);
@@ -19,22 +20,30 @@ class SS {
   static Color of(bool red) => red ? rojo : azul;
   static Color upOf(bool red) => red ? rojoUp : azulUp;
   static const title = TextStyle(
-      fontFamily: 'Pixelify',
+      fontFamily: readingFamily,
       fontSize: 22,
       fontWeight: FontWeight.w700,
-      letterSpacing: 2,
+      letterSpacing: 0.5,
       color: ink);
-  static const sub = TextStyle(fontSize: 12, color: mute, height: 1.4);
-  static const body = TextStyle(fontSize: 13, color: ink, height: 1.4);
+  static const sub = TextStyle(fontSize: 14, color: mute, height: 1.4);
+  static const body = TextStyle(fontSize: 16, color: ink, height: 1.4);
   static const numStyle = TextStyle(
-      fontFamily: 'Pixelify', fontWeight: FontWeight.w700, color: ink);
+      fontFamily: readingFamily,
+      fontFeatures: [FontFeature.tabularFigures()],
+      fontWeight: FontWeight.w700,
+      color: ink);
   static ThemeData theme() => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: table,
-        fontFamily: 'Pixelify',
+        fontFamily: readingFamily,
         colorScheme: const ColorScheme.dark(
             primary: mana, secondary: azul, surface: surface),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontSize: 16, height: 1.4),
+          bodySmall: TextStyle(fontSize: 14, height: 1.4),
+          labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
         tooltipTheme: const TooltipThemeData(textStyle: body),
       );
   static BoxDecoration tableBg() => const BoxDecoration(

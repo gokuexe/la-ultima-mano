@@ -103,12 +103,14 @@ void main() {
         home: ChapterScreen(
             progress: progress,
             playMatch: (_, __) async => result ? null : false)));
+    await tester.scrollUntilVisible(find.text('JUGAR LA PRIMERA MESA'), 200);
     await tester.ensureVisible(find.text('JUGAR LA PRIMERA MESA'));
     await tester.tap(find.text('JUGAR LA PRIMERA MESA'));
     await tester.pumpAndSettle();
     expect(find.text('OTRA SILLA'), findsOneWidget);
     expect(progress.chapterComplete, isFalse);
     result = true;
+    await tester.scrollUntilVisible(find.text('VOLVER A INTENTARLO'), 200);
     await tester.ensureVisible(find.text('VOLVER A INTENTARLO'));
     await tester.tap(find.text('VOLVER A INTENTARLO'));
     await tester.pumpAndSettle();

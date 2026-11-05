@@ -54,10 +54,6 @@ class LaUltimaManoApp extends StatelessWidget {
               localizationsDelegates: GlobalMaterialLocalizations.delegates,
               debugShowCheckedModeBanner: false,
               theme: SS.theme(),
-              // El juego está pensado para un celular. En una ventana de escritorio
-              // mucho más ancha (o más alta) que eso, en vez de dejarlo fijo y chico
-              // con bandas vacías a los costados, se escala para aprovechar el alto
-              // disponible, como haría un emulador.
               builder: (context, child) => ColoredBox(
                 color: SS.table,
                 child: MediaQuery(
@@ -93,45 +89,17 @@ class LaUltimaManoApp extends StatelessWidget {
   }
 }
 
-/// Escala el diseño (pensado para ~480×860) al alto disponible, sin
-/// reescribir ninguna pantalla: todo el árbol de widgets sigue creyendo
-/// que vive en esas medidas, solo se pinta más grande o más chico.
-///
-/// En una ventana bien panorámica, escalar solo por el alto deja el diseño
-/// angosto y bandas enormes a los costados: además de escalar, se le da un
-/// poco más de ancho de "lienzo" (hasta 620) para que las filas con
-/// Expanded/flex de GameScreen se estiren y aprovechen ese espacio, en vez
-/// de dejarlo vacío.
+/// Use the actual viewport. SafeArea accounts for status/navigation bars and cutouts.
+/// Wide desktop windows keep a readable column without shrinking any text.
 class _ResponsiveStage extends StatelessWidget {
-  static const double _designMinW = 480;
-  static const double _designMaxW = 620;
-  // Stage height keeps the table readable on desktop.
-  static const double _designH = 960;
-
   final Widget child;
   const _ResponsiveStage({required this.child});
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        final heightScale = box.maxHeight / _designH;
-        final widthScaleAtMin = box.maxWidth / _designMinW;
-        final scale =
-            (heightScale < widthScaleAtMin ? heightScale : widthScaleAtMin)
-                .clamp(0.7, 1.8)
-                .toDouble();
-        final designW =
-            (box.maxWidth / scale).clamp(_designMinW, _designMaxW).toDouble();
-        return Center(
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(width: designW, height: _designH, child: child),
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => SafeArea(
+      child: Center(
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: SizedBox.expand(child: child))));
 }
 
 class TitleScreen extends StatefulWidget {
@@ -238,11 +206,14 @@ class _TitleScreenState extends State<TitleScreen>
                                       style: SS.sub),
                                 ),
                                 const Spacer(flex: 3),
-                                const GameText('LA ÚLTIMA\nMANO',
+                                GameText('LA ÚLTIMA\nMANO',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                         fontFamily: 'Pixelify',
-                                        fontSize: 58,
+                                        fontSize:
+                                            (MediaQuery.sizeOf(context).width /
+                                                    8.5)
+                                                .clamp(32, 58),
                                         height: 0.95,
                                         letterSpacing: 3,
                                         color: SS.ink,

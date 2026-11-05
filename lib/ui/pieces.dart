@@ -53,8 +53,11 @@ class RivalPanel extends StatelessWidget {
           GameText(
             player.name,
             translate: false,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               color: active ? SS.ink : SS.mute,
             ),
@@ -70,7 +73,7 @@ class RivalPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           GameText('${player.hand.length} cartas',
-              style: const TextStyle(fontSize: 9.5, color: SS.mute)),
+              style: const TextStyle(fontSize: 14, color: SS.mute)),
           const SizedBox(height: 4),
           ManaPips(value: player.mana, max: 5, size: 5),
         ],
@@ -207,7 +210,7 @@ class _LogViewState extends State<LogView> {
             child: GameText(
               e.text,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 14,
                 height: 1.35,
                 color: last || e.loud ? SS.ink : SS.mute,
                 fontWeight: e.loud ? FontWeight.w600 : FontWeight.w400,
@@ -225,6 +228,10 @@ class _LogViewState extends State<LogView> {
 /// Se mece sola con un movimiento leve y desincronizado entre cartas, así la
 /// mano se siente viva sin llamar la atención.
 class HandCard extends StatefulWidget {
+  static double scaleFor(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(16) / 16;
+  static double heightFor(BuildContext context) => 300 * scaleFor(context);
+
   final ActionCard card;
   final bool enabled;
   final VoidCallback onTap;
@@ -252,8 +259,9 @@ class _HandCardState extends State<HandCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         margin: EdgeInsets.only(top: _hover ? 0 : 6, bottom: _hover ? 6 : 0),
-        width: 152,
-        height: 300,
+        width: (220 * HandCard.scaleFor(context)).clamp(
+            180, (MediaQuery.sizeOf(context).width - 106).clamp(180, 320)),
+        height: HandCard.heightFor(context),
         decoration: SS.panel(accent: accent, raised: _hover),
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -261,14 +269,14 @@ class _HandCardState extends State<HandCard> {
               padding: const EdgeInsets.fromLTRB(8, 6, 4, 4),
               child: Row(children: [
                 Expanded(
-                    child: GameText(v.ribbon,
-                        maxLines: 1,
+                    child: GameText(widget.card.name.toUpperCase(),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 9, color: accent, letterSpacing: 1))),
+                            fontSize: 16, color: SS.ink, height: 1.2))),
                 SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: 48,
+                    height: 48,
                     child: IconButton(
                         padding: EdgeInsets.zero,
                         tooltip:
@@ -298,7 +306,7 @@ class _HandCardState extends State<HandCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-              height: 83,
+              height: 40,
               margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                   color: SS.table, border: Border.all(color: SS.line)),
@@ -308,57 +316,52 @@ class _HandCardState extends State<HandCard> {
                 PixelSigil(
                     seed: widget.card.id.codeUnits.fold(0, (a, b) => a + b),
                     color: accent,
-                    size: 68),
+                    size: 32),
                 GameText('┘', style: TextStyle(color: accent)),
               ])),
-          Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-              child: GameText(widget.card.name.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 15, height: 1.05, color: SS.ink))),
+          const SizedBox(height: 8),
           Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: GameText(
                   '${widget.card.cost} LUCIDEZ${widget.card.isReaction ? ' · RESPUESTA' : ''}',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 10, color: SS.mana))),
+                  style: TextStyle(fontSize: 14, color: SS.mana))),
           const SizedBox(height: 6),
           Expanded(
               child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: GameText(widget.card.desc,
-                      maxLines: 5,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, height: 1.15, color: SS.ink)))),
+                  child: SingleChildScrollView(
+                      child: GameText(widget.card.desc,
+                          style: const TextStyle(
+                              fontSize: 16, height: 1.35, color: SS.ink))))),
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               color: SS.table,
               child: GameText(
-                  widget.enabled ? '▶ JUGAR RECUERDO' : 'ESPERÁ TU MOMENTO',
+                  widget.enabled ? 'JUGAR RECUERDO' : 'ESPERÁ TU MOMENTO',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: 9, color: widget.enabled ? SS.win : SS.mute))),
+                      fontSize: 14, color: widget.enabled ? SS.win : SS.mute))),
         ],
       );
 
   Widget _memory(CardVisual v) => Padding(
         key: const ValueKey('memory'),
         padding: const EdgeInsets.all(12),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        child: SingleChildScrollView(
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           PixelSigil(seed: widget.card.id.length, color: v.color, size: 54),
           const SizedBox(height: 16),
           GameText(v.post.replaceAll('*', ''),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15, height: 1.3, color: SS.ink)),
           const SizedBox(height: 16),
-          GameText(v.stamp, style: TextStyle(fontSize: 10, color: v.color)),
+          GameText(v.stamp, style: TextStyle(fontSize: 14, color: v.color)),
           const SizedBox(height: 12),
           const GameText('Tocá para volver', style: SS.sub),
-        ]),
+        ])),
       );
 }

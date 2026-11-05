@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'catalog.dart';
+import '../theme.dart';
 
 class LanguageScope extends InheritedWidget {
   final String language;
@@ -38,14 +39,20 @@ class GameText extends StatelessWidget {
       this.semanticsLabel,
       this.translate = true});
   @override
-  Widget build(BuildContext context) =>
-      Text(translate ? context.tr(data) : data,
-          style: style,
-          textAlign: textAlign,
-          maxLines: maxLines,
-          overflow: overflow,
-          softWrap: softWrap,
-          textDirection: textDirection,
-          semanticsLabel:
-              semanticsLabel == null ? null : context.tr(semanticsLabel!));
+  Widget build(BuildContext context) {
+    final inherited = DefaultTextStyle.of(context).style.merge(style);
+    final readable = inherited.copyWith(
+      fontFamily: style?.fontFamily ?? SS.readingFamily,
+      fontSize: (inherited.fontSize ?? 16).clamp(14, double.infinity),
+    );
+    return Text(translate ? context.tr(data) : data,
+        style: readable,
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+        softWrap: softWrap,
+        textDirection: textDirection,
+        semanticsLabel:
+            semanticsLabel == null ? null : context.tr(semanticsLabel!));
+  }
 }

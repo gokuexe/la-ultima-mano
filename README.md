@@ -273,3 +273,26 @@ mesa local con lectura ampliada. Requiere un dispositivo Android y se ejecuta
 por separado de la compilación; la preparación del test no implica que se haya
 probado en un teléfono físico.
 La comprobación opcional online crea una sala y conecta dos clientes por TLS.
+
+### Lectura y pantallas pequeñas
+
+La interfaz usa el tamaño real disponible, sin reducir un lienzo fijo de
+480×960 ni imponer un tablero de 1.000 píxeles. Respeta las barras del sistema
+y los recortes de pantalla. Los botones de turno permanecen visibles; el
+contenido adicional se desplaza verticalmente y la mano horizontalmente.
+
+Los textos y números usan Liberation Sans (regular y negrita, SIL OFL incluida)
+con un mínimo de 14 píxeles lógicos; las explicaciones usan 16. El título conserva
+Pixelify como elemento de marca. Las fuentes viajan dentro de cada compilación,
+sin descargarse al abrir el juego. Los números mantienen anchura tabular.
+Las cartas y los diálogos se adaptan al tamaño de lectura; las respuestas y los
+desenlaces permiten desplazar el contenido con letras grandes.
+
+Las pruebas de regresión montan la app completa en 320×568, 360×640, 390×844 y
+412×915, con zonas seguras, ambos idiomas y escala de sistema 1,0 y 1,4.
+Comprueban que terminar turno sea pulsable antes de desplazar, y revisan las
+20 cartas y sus reversos. Para renderizar capturas sin emulador:
+
+```bash
+flutter test tool/render_mobile_preview.dart --concurrency=1 --dart-define=MOBILE_PREVIEW_OUTPUT=/ruta/absoluta/capturas
+```

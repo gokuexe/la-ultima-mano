@@ -103,7 +103,7 @@ class MiniCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 8,
+                      fontSize: 14,
                       height: 1.15,
                       fontWeight: FontWeight.w700,
                       color: Colors.white.withValues(alpha: 0.85),
@@ -216,7 +216,7 @@ class _PlayedPileState extends State<PlayedPile>
                   GameText(
                     'la mesa está limpia',
                     style: SS.sub.copyWith(
-                        fontSize: 11, color: SS.mute.withValues(alpha: 0.5)),
+                        fontSize: 14, color: SS.mute.withValues(alpha: 0.5)),
                   ),
 
                 // efecto de la última carta, por encima de todo
@@ -257,7 +257,7 @@ class _PlayedPileState extends State<PlayedPile>
                         '${visible.last.actor} · '
                         '${visualFor(visible.last.cardId).social}',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: visualFor(visible.last.cardId).color,
                         ),
@@ -347,7 +347,7 @@ class DeckStack extends StatelessWidget {
               ),
               child: GameText(
                 '$count',
-                style: SS.numStyle.copyWith(fontSize: 11, color: SS.mute),
+                style: SS.numStyle.copyWith(fontSize: 14, color: SS.mute),
               ),
             ),
           ),
