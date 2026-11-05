@@ -111,6 +111,23 @@ class _PreferencesPanel extends StatelessWidget {
                   onChanged: (value) =>
                       preferences.update(reduceMotion: value)),
               const SizedBox(height: 20),
+              SwitchListTile(
+                  key: const ValueKey('tension-setting'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const GameText('Atmósfera de tensión'),
+                  subtitle: const GameText(
+                      'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.'),
+                  value: preferences.tension,
+                  onChanged: (value) => preferences.update(tension: value)),
+              SwitchListTile(
+                  key: const ValueKey('device-hints-setting'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const GameText('Guiños al dispositivo'),
+                  subtitle: const GameText(
+                      'Opcional: usa el sistema, el idioma del juego y la hora local en diálogos. No lee archivos ni datos personales; no se envía al servidor.'),
+                  value: preferences.deviceHints,
+                  onChanged: (value) => preferences.update(deviceHints: value)),
+              const SizedBox(height: 20),
               GameText(
                   preferences.saveError ??
                       'Tus preferencias se guardan solo en este equipo.',

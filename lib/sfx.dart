@@ -27,6 +27,7 @@ class Sfx {
     'pulse_ready',
     'anchor',
     'exchange',
+    'tension',
   ];
 
   final Map<String, AudioPlayer> _players = {};

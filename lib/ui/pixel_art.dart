@@ -56,8 +56,12 @@ class _SigilPainter extends CustomPainter {
 class PixelPortrait extends StatefulWidget {
   final int character;
   final bool active;
+  final bool hostile;
   const PixelPortrait(
-      {super.key, required this.character, this.active = false});
+      {super.key,
+      required this.character,
+      this.active = false,
+      this.hostile = false});
   @override
   State<PixelPortrait> createState() => _PixelPortraitState();
 }
@@ -102,8 +106,8 @@ class _PixelPortraitState extends State<PixelPortrait>
         child: AnimatedBuilder(
             animation: _blink,
             builder: (_, __) => CustomPaint(
-                painter: _PortraitPainter(
-                    widget.character, widget.active, _blink.value))),
+                painter: _PortraitPainter(widget.character, widget.active,
+                    _blink.value, widget.hostile))),
       );
 }
 
@@ -111,7 +115,8 @@ class _PortraitPainter extends CustomPainter {
   final int character;
   final bool active;
   final double blink;
-  _PortraitPainter(this.character, this.active, this.blink);
+  final bool hostile;
+  _PortraitPainter(this.character, this.active, this.blink, this.hostile);
   @override
   void paint(Canvas canvas, Size size) {
     final u = size.width / 12;
@@ -127,13 +132,35 @@ class _PortraitPainter extends CustomPainter {
     rect(2, 3, 8, 7, robe);
     rect(3, 4, 6, 5, const Color(0xFF171419));
     if (blink < .65) {
-      rect(4, 5, 1, 1, active ? SS.mana : SS.ink);
-      rect(7, 5, 1, 1, active ? SS.mana : SS.ink);
+      rect(
+          4,
+          5,
+          1,
+          1,
+          hostile
+              ? SS.rojoUp
+              : active
+                  ? SS.mana
+                  : SS.ink);
+      rect(
+          7,
+          5,
+          1,
+          1,
+          hostile
+              ? SS.rojoUp
+              : active
+                  ? SS.mana
+                  : SS.ink);
     } else {
       rect(3, 6, 2, 1, SS.mute);
       rect(7, 6, 2, 1, SS.mute);
     }
-    rect(5, 8, 2, 1, SS.mute);
+    if (hostile) {
+      rect(3, 4, 2, 1, SS.rojoUp);
+      rect(7, 4, 2, 1, SS.rojoUp);
+    }
+    rect(5, 8, 2, 1, hostile ? SS.rojoUp : SS.mute);
     rect(1, 10, 10, 2, robe);
     if (character % 3 == 1) rect(5, 3, 2, 6, SS.mute);
     if (character % 3 == 2) rect(4, 7, 4, 1, SS.rojoUp);
@@ -141,7 +168,10 @@ class _PortraitPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PortraitPainter old) =>
-      old.character != character || old.active != active || old.blink != blink;
+      old.character != character ||
+      old.active != active ||
+      old.blink != blink ||
+      old.hostile != hostile;
 }
 
 class PixelDust extends CustomPainter {

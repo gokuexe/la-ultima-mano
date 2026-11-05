@@ -1,5 +1,27 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
 const englishMessages = <String, String>{
+  'Atmósfera de tensión': 'Tension atmosphere',
+  'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.':
+      'Soft heartbeats, changing light and restless rivals. The rules stay the same.',
+  'Guiños al dispositivo': 'Device-aware dialogue',
+  'Opcional: usa el sistema, el idioma del juego y la hora local en diálogos. No lee archivos ni datos personales; no se envía al servidor.':
+      'Optional: uses your platform, game language and local time in dialogue. No files or personal data are read; nothing is sent to the server.',
+  'No. No vas a dejarme otra vez. Alejá la mano de esa puerta.':
+      'No. You are not leaving me again. Take your hand away from that door.',
+  'Casi lo recordás. Qué conveniente. ¿También recordás quién se quedó afuera?':
+      'You almost remember. How convenient. Do you also remember who was left outside?',
+  'Si cerrás el juego, ¿quién se queda mirando desde este lado de la pantalla?':
+      'If you close the game, who keeps watching from this side of the screen?',
+  'La lámpara pierde calor. Algo no quiere que termines esta partida.':
+      'The lamp loses its warmth. Something does not want you to finish this match.',
+  'Los números encajan. La sombra de tu silla, no.':
+      'The numbers fit. The shadow of your chair does not.',
+  'Estás mirando una pantalla. Eso no explica por qué la puerta está detrás de vos.':
+      'You are looking at a screen. That does not explain why the door is behind you.',
+  'Elegiste inglés. Hay cosas que no necesitan traducción.':
+      'You chose English. Some things need no translation.',
+  'Elegiste español. Hay cosas que no necesitan traducción.':
+      'You chose Spanish. Some things need no translation.',
   'CANCELAR': 'CANCEL',
   'JUGAR CARTA': 'PLAY CARD',
   '¿Salir de la partida?': 'Leave this match?',

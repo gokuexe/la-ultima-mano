@@ -35,6 +35,15 @@ abstract final class Catalog {
 
   static String en(String source) => translate(source, 'en');
   static final _rules = <(RegExp, String Function(RegExpMatch))>[
+    (
+      RegExp(
+          r'^Son las (\d{2}:\d{2}) en tu reloj\. Acá todavía es la misma noche\.$'),
+      (m) => 'Your clock says ${m[1]}. It is still the same night here.'
+    ),
+    (
+      RegExp(r'^Tu pantalla dice (.+)\. La puerta no conoce ese nombre\.$'),
+      (m) => 'Your screen says ${m[1]}. The door does not know that name.'
+    ),
     (RegExp(r'^Confirmar: (.+)$'), (m) => 'Confirm: ${en(m[1]!)}'),
     (RegExp(r'^Coste: (\d+) lucidez$'), (m) => 'Cost: ${m[1]} lucidity'),
     (

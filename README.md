@@ -33,6 +33,24 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## La habitación reacciona (0.3.0)
+
+Cuando tus recuerdos quedan a un ajuste de la salida, los retratos de los
+rivales locales se vuelven hostiles, la luz cambia lentamente y suena un latido
+suave. Al tener 6/7, el ambiente se intensifica. Los diálogos tienen prioridad
+breve, un intervalo mínimo de 12 segundos y un máximo de tres por partida.
+El efecto visual respira una vez y queda estático; no mantiene una animación
+infinita ni tapa los controles. Volumen, silencio y movimiento reducido se respetan.
+
+En Ajustes podés desactivar la atmósfera o activar, por separado, **Guiños al
+dispositivo** (desactivados por defecto). Estos últimos usan únicamente el
+sistema/plataforma, el idioma elegido dentro del juego y la hora local para
+frases de cuarta pared. No consultan archivos, nombres de usuario, contactos,
+ubicación, micrófono, cámara ni identificadores. El contexto se calcula solo
+al habilitar la opción y aparecer un diálogo; no se manda por red. En web,
+la plataforma se presenta simplemente como Web. Online, habla la habitación,
+sin atribuir frases a otros jugadores ni consultar sus recuerdos ocultos.
+
 ## Confirmación y navegación (0.2.2)
 
 Elegir una carta abre sus objetivos y una confirmación final antes de gastar

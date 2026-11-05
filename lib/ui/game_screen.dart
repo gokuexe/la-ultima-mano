@@ -10,6 +10,9 @@ import '../story_progress.dart';
 import '../portal/portal_ads.dart';
 import 'options_screen.dart';
 import '../dialogue.dart';
+import '../tension.dart';
+import '../local_stage_hint.dart';
+import 'tension_atmosphere.dart';
 import 'dialogue_box.dart';
 import '../game_config.dart';
 import '../model.dart';
@@ -47,6 +50,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _rewarded = false;
   int _earnedPoints = 0;
   final DialogueDirector _dialogue = DialogueDirector();
+  final TensionDirector _tension = TensionDirector();
+  bool _deviceTextVisible = false;
+  int _hintSequence = 0;
   late DialogueLine _line = _dialogue.beginRound(1);
   final ScrollController _handScroll = ScrollController();
 
@@ -67,12 +73,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (engine is! RemoteGameEngine) PortalAds.instance.attach(engine);
     engine.onFx = _handleFx;
     engine.addListener(_onEngine);
+    PlayPreferences.instance.addListener(_preferencesChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onEngine();
+    });
     CollectionProgress.instance.addListener(_collectionChanged);
     Sfx.i.init();
   }
 
   void _collectionChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _preferencesChanged() {
+    if ((!PlayPreferences.instance.deviceHints && _deviceTextVisible) ||
+        (!PlayPreferences.instance.tension && _tension.level > 0)) {
+      // Immediately remove any optional device text when the option is disabled.
+      _line = DialogueDirector.opening;
+      _deviceTextVisible = false;
+    }
+    _onEngine();
   }
 
   int _round = 1;
@@ -86,6 +106,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _pile.clear();
       _seq = 0;
       _line = _dialogue.beginRound(_round);
+      _tension.reset();
       _singFlash.reset();
     }
     if (engine.winner != null && !_rewarded) {
@@ -93,6 +114,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final won = engine.winner == engine.me.name;
       _earnedPoints = won ? 30 : 10;
       CollectionProgress.instance.awardMatch(won: won);
+    }
+    final cue = _tension.observe(
+      distance: engine.me.distance,
+      enabled: PlayPreferences.instance.tension,
+      settled: !engine.busy && engine.choice == null && !engine.paused,
+      finished: engine.winner != null,
+      npcVoices: engine is! RemoteGameEngine,
+      deviceHints: PlayPreferences.instance.deviceHints,
+      readDeviceHint: (index) => localStageHint(
+          _hintSequence++ + DateTime.now().minute,
+          language: PlayPreferences.instance.language),
+    );
+    if (cue != null) {
+      _line = cue;
+      _deviceTextVisible = PlayPreferences.instance.deviceHints;
+      Sfx.i.play('tension', volume: .36);
     }
     if (mounted) setState(() {});
   }
@@ -102,7 +139,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         (fx.playerId == null ? '' : engine.players[fx.playerId!].name);
     final line =
         _dialogue.react(fx, actor, allowNpcVoice: widget.session == null);
-    if (line != null && mounted) setState(() => _line = line);
+    if (line != null &&
+        mounted &&
+        (!_tension.holdsDialogue ||
+            fx.kind == FxKind.win ||
+            fx.kind == FxKind.lose ||
+            fx.kind == FxKind.sing)) {
+      _deviceTextVisible = false;
+      setState(() => _line = line);
+    }
     switch (fx.kind) {
       case FxKind.play:
         final id = fx.cardId;
@@ -161,8 +206,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case FxKind.pulse:
         Sfx.i.play('anchor', volume: .6);
-        setState(() => _line = const DialogueLine(
-            'La habitación', 'Un latido. El recuerdo vuelve a su sitio.'));
+        if (!_tension.holdsDialogue) {
+          setState(() => _line = const DialogueLine(
+              'La habitación', 'Un latido. El recuerdo vuelve a su sitio.'));
+        }
         if (fx.playerId == 0) Sfx.i.tap();
         break;
       case FxKind.charge:
@@ -186,6 +233,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void dispose() {
     PortalAds.instance.detach(engine);
     engine.removeListener(_onEngine);
+    PlayPreferences.instance.removeListener(_preferencesChanged);
     CollectionProgress.instance.removeListener(_collectionChanged);
     engine.onFx = null;
     engine.dispose();
@@ -288,6 +336,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _earnedPoints = 0;
       _line = _dialogue.beginRound(1);
     });
+    _tension.reset();
     engine.newGame();
     _restarting = false;
   }
@@ -307,6 +356,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: Stack(
                 children: [
                   Positioned.fill(child: _table(me, myTurn)),
+                  Positioned.fill(
+                      child: TensionAtmosphere(
+                    level: engine.paused ||
+                            engine.winner != null ||
+                            !PlayPreferences.instance.tension
+                        ? 0
+                        : _tension.level,
+                  )),
                   SingFlash(anim: _singFlash, actor: _singActor),
                   if (engine.choice != null)
                     ChoiceOverlay(
@@ -344,6 +401,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _table(Player me, bool myTurn) {
+    final urgentDialogue = _tension.level > 0 && _tension.holdsDialogue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -366,9 +424,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     PulseStrip(engine: engine),
                   ],
                   const SizedBox(height: 12),
+                  if (urgentDialogue) ...[
+                    DialogueBox(line: _line),
+                    const SizedBox(height: 12),
+                  ],
                   _hand(me, myTurn),
                   const SizedBox(height: 12),
-                  DialogueBox(line: _line),
+                  if (!urgentDialogue) DialogueBox(line: _line),
                   const SizedBox(height: 12),
                   SizedBox(
                       height: 200,
@@ -473,6 +535,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             child: RivalPanel(
               player: foes[i],
               active: engine.turn == foes[i].id,
+              hostile: _tension.level > 0 && engine is! RemoteGameEngine,
               seesRed: engine.seesCard(foes[i].id, CardColor.red),
               seesBlue: engine.seesCard(foes[i].id, CardColor.blue),
             ),

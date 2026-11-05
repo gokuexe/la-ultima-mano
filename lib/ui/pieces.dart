@@ -13,6 +13,7 @@ import 'pixel_art.dart';
 class RivalPanel extends StatelessWidget {
   final Player player;
   final bool active;
+  final bool hostile;
   final bool seesRed;
   final bool seesBlue;
 
@@ -20,6 +21,7 @@ class RivalPanel extends StatelessWidget {
     super.key,
     required this.player,
     required this.active,
+    this.hostile = false,
     required this.seesRed,
     required this.seesBlue,
   });
@@ -27,13 +29,19 @@ class RivalPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 280),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 280),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: active ? SS.surfaceUp : SS.surface,
         borderRadius: BorderRadius.zero,
         border: Border.all(
-          color: active ? SS.mana : SS.line,
+          color: hostile
+              ? SS.rojoUp
+              : active
+                  ? SS.mana
+                  : SS.line,
           width: active ? 1.6 : 1,
         ),
         boxShadow: active
@@ -48,7 +56,8 @@ class RivalPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PixelPortrait(character: player.id - 1, active: active),
+          PixelPortrait(
+              character: player.id - 1, active: active, hostile: hostile),
           const SizedBox(height: 4),
           GameText(
             player.name,
