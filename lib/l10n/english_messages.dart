@@ -4,8 +4,8 @@ const englishMessages = <String, String>{
   'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.':
       'Soft heartbeats, changing light and restless rivals. The rules stay the same.',
   'Guiños al dispositivo': 'Device-aware dialogue',
-  'Opcional: usa el sistema, el idioma del juego y la hora local en diálogos. No lee archivos ni datos personales; no se envía al servidor.':
-      'Optional: uses your platform, game language and local time in dialogue. No files or personal data are read; nothing is sent to the server.',
+  'Activo por defecto. Usa el sistema, el idioma del juego y la hora local en diálogos. Podés desactivarlo. No lee archivos ni datos personales; no se envía al servidor.':
+      'Enabled by default. Uses your platform, game language and local time in dialogue. You can turn it off. No files or personal data are read; nothing is sent to the server.',
   'No. No vas a dejarme otra vez. Alejá la mano de esa puerta.':
       'No. You are not leaving me again. Take your hand away from that door.',
   'Casi lo recordás. Qué conveniente. ¿También recordás quién se quedó afuera?':

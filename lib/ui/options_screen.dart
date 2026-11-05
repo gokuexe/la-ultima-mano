@@ -124,7 +124,7 @@ class _PreferencesPanel extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const GameText('Guiños al dispositivo'),
                   subtitle: const GameText(
-                      'Opcional: usa el sistema, el idioma del juego y la hora local en diálogos. No lee archivos ni datos personales; no se envía al servidor.'),
+                      'Activo por defecto. Usa el sistema, el idioma del juego y la hora local en diálogos. Podés desactivarlo. No lee archivos ni datos personales; no se envía al servidor.'),
                   value: preferences.deviceHints,
                   onChanged: (value) => preferences.update(deviceHints: value)),
               const SizedBox(height: 20),

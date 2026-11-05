@@ -32,7 +32,7 @@ void main() {
         .load();
   });
   test(
-      'device context is never read without opt-in; proximity uses only own distance',
+      'disabled device hints never read context; proximity uses only own distance',
       () {
     final director = TensionDirector();
     var reads = 0;
@@ -143,12 +143,16 @@ void main() {
     expect(Catalog.en(localStageHint(2, language: 'en')),
         startsWith('You chose English.'));
   });
-  test('device hints default off and preferences persist explicit choices',
+  test(
+      'device hints default on for new/old profiles and preserve explicit disabling',
       () async {
     final store = MemoryStore();
     final prefs = PlayPreferences(store: store);
     await prefs.load();
-    expect(prefs.deviceHints, isFalse);
+    expect(prefs.deviceHints, isTrue);
+    store.data = '{"language":"es"}';
+    await prefs.load();
+    expect(prefs.deviceHints, isTrue);
     await prefs.update(deviceHints: true, tension: false);
     final restored = PlayPreferences(store: store);
     await restored.load();
@@ -156,6 +160,8 @@ void main() {
     expect(restored.tension, isFalse);
     await restored.update(deviceHints: false);
     expect(restored.deviceHints, isFalse);
+    await prefs.load();
+    expect(prefs.deviceHints, isFalse);
     prefs.dispose();
     restored.dispose();
   });

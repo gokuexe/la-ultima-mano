@@ -13,7 +13,7 @@ class PlayPreferences extends ChangeNotifier {
   double textScale = 1;
   bool reduceMotion = false;
   bool tension = true;
-  bool deviceHints = false;
+  bool deviceHints = true;
   String language = 'es';
   String? saveError;
   Future<void> _writes = Future<void>.value();
@@ -25,7 +25,7 @@ class PlayPreferences extends ChangeNotifier {
     reduceMotion = false;
     language = 'es';
     tension = true;
-    deviceHints = false;
+    deviceHints = true;
     try {
       final raw = await store?.read();
       if (raw != null) {
@@ -38,7 +38,7 @@ class PlayPreferences extends ChangeNotifier {
         }
         reduceMotion = data['reduceMotion'] == true;
         tension = data['tension'] != false;
-        deviceHints = data['deviceHints'] == true;
+        deviceHints = data['deviceHints'] != false;
         language = data['language'] == 'en' ? 'en' : 'es';
       }
     } on StorageFailure {

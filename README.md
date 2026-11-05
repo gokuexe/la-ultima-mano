@@ -42,12 +42,13 @@ breve, un intervalo mínimo de 12 segundos y un máximo de tres por partida.
 El efecto visual respira una vez y queda estático; no mantiene una animación
 infinita ni tapa los controles. Volumen, silencio y movimiento reducido se respetan.
 
-En Ajustes podés desactivar la atmósfera o activar, por separado, **Guiños al
-dispositivo** (desactivados por defecto). Estos últimos usan únicamente el
+La atmósfera y los **Guiños al dispositivo** están activos por defecto, también
+al actualizar desde una versión sin esa opción. Podés desactivarlos por separado
+en Ajustes; una elección guardada de desactivación se respeta. Los guiños usan únicamente el
 sistema/plataforma, el idioma elegido dentro del juego y la hora local para
 frases de cuarta pared. No consultan archivos, nombres de usuario, contactos,
 ubicación, micrófono, cámara ni identificadores. El contexto se calcula solo
-al habilitar la opción y aparecer un diálogo; no se manda por red. En web,
+al aparecer un diálogo con la opción activa; no se manda por red. En web,
 la plataforma se presenta simplemente como Web. Online, habla la habitación,
 sin atribuir frases a otros jugadores ni consultar sus recuerdos ocultos.
 

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// No files, identifiers, sensors or network calls. Invoked only after opt-in.
+/// No files, identifiers, sensors or network calls. Not invoked when device hints are disabled.
 String localStageHint(int index, {required String language, DateTime? now}) {
   switch (index % 3) {
     case 0:

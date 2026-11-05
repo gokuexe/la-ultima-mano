@@ -1,7 +1,7 @@
 import 'dialogue.dart';
 
 /// Presentation only. Accepts the local player's distance, never rival values.
-/// Device text is read lazily, only when the player has enabled the option.
+/// Device text is read lazily and is never read while the option is disabled.
 class TensionDirector {
   final DateTime Function() now;
   TensionDirector({DateTime Function()? now}) : now = now ?? DateTime.now;
@@ -58,8 +58,8 @@ class TensionDirector {
     final base = npcVoices ? _rivals[index] : _room[index];
     final text =
         deviceHints ? '${base.text}\n${readDeviceHint(index)}' : base.text;
-    // Device cues are always attributed to the room, never a real online player.
-    return DialogueLine(deviceHints ? 'La habitación' : base.speaker, text);
+    // Online uses only the room bank; authored NPCs can break the fourth wall locally.
+    return DialogueLine(base.speaker, text);
   }
 
   bool get holdsDialogue => holdUntil != null && now().isBefore(holdUntil!);
