@@ -1,5 +1,6 @@
 import '../l10n/game_text.dart';
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -32,6 +33,7 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
     duration: const Duration(milliseconds: 220),
   )..forward();
   int _lastTick = -1;
+  bool _visuallyPaused = false;
 
   @override
   void initState() {
@@ -41,10 +43,24 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
       _timer = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: (secs * 1000).round()),
-      )
-        ..addListener(_onTick)
-        ..forward();
+      )..addListener(_onTick);
+      _visuallyPaused = widget.request.pausedAt != null;
+      if (!_visuallyPaused) _timer!.forward();
       Sfx.i.thump();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ChoiceOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final paused = widget.request.pausedAt != null;
+    if (_timer != null && paused != _visuallyPaused) {
+      _visuallyPaused = paused;
+      if (paused) {
+        _timer!.stop();
+      } else {
+        _timer!.forward(from: 1 - widget.request.remaining);
+      }
     }
   }
 
@@ -132,6 +148,13 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
                         },
                       ),
                     ),
+                  if (r.seconds == null &&
+                      !r.options.any((o) => o.value == null))
+                    TextButton(
+                      key: const ValueKey('cancel-card-choice'),
+                      onPressed: () => widget.onPick(null),
+                      child: const GameText('CANCELAR'),
+                    ),
                 ],
               )),
             ),
@@ -184,23 +207,28 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
-/// Pantalla final con papelitos. Solo aparece cuando ganás vos; si gana un bot
-/// la misma pantalla va sin confeti.
+/// El resultado permanece hasta elegir otra partida o volver al inicio.
 class EndOverlay extends StatefulWidget {
   final String winner;
+  final int pointsEarned;
   final bool youWon;
   final VoidCallback onAgain;
   final String againLabel;
   final VoidCallback? onExit;
+  final String exitLabel;
+  final bool againEnabled;
   final String? status;
 
   const EndOverlay({
     super.key,
     required this.winner,
+    this.pointsEarned = 0,
     required this.youWon,
     required this.onAgain,
-    this.againLabel = 'Volver a despertar',
+    this.againLabel = 'JUGAR OTRA PARTIDA',
     this.onExit,
+    this.exitLabel = 'VOLVER AL INICIO',
+    this.againEnabled = true,
     this.status,
   });
 
@@ -210,6 +238,16 @@ class EndOverlay extends StatefulWidget {
 
 class _EndOverlayState extends State<EndOverlay>
     with SingleTickerProviderStateMixin {
+  bool _actionsReady = false;
+  Timer? _enableActions;
+  @override
+  void initState() {
+    super.initState();
+    _enableActions = Timer(const Duration(milliseconds: 650), () {
+      if (mounted) setState(() => _actionsReady = true);
+    });
+  }
+
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2600),
@@ -217,6 +255,7 @@ class _EndOverlayState extends State<EndOverlay>
 
   @override
   void dispose() {
+    _enableActions?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -233,7 +272,7 @@ class _EndOverlayState extends State<EndOverlay>
                 child: AnimatedBuilder(
                   animation: _c,
                   builder: (context, _) =>
-                      CustomPaint(painter: _ConfettiPainter(_c.value)),
+                      CustomPaint(painter: _DoorRevealPainter(_c.value)),
                 ),
               ),
             Center(
@@ -264,30 +303,44 @@ class _EndOverlayState extends State<EndOverlay>
                           child: GameText(widget.status!,
                               textAlign: TextAlign.center, style: SS.sub),
                         ),
+                      if (widget.pointsEarned > 0)
+                        Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: GameText(
+                                '+${widget.pointsEarned} puntos de recuerdo',
+                                style: SS.body)),
                       const SizedBox(height: 26),
-                      GestureDetector(
-                        onTap: widget.onAgain,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 34, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: SS.mana,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: GameText(
-                            widget.againLabel,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2A1F05),
-                            ),
-                          ),
+                      const GameText('¿Qué querés hacer ahora?',
+                          textAlign: TextAlign.center, style: SS.body),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        key: const ValueKey('result-play-again'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: SS.mana,
+                          foregroundColor: const Color(0xFF2A1F05),
+                          minimumSize: const Size(48, 48),
+                          shape: const RoundedRectangleBorder(),
                         ),
+                        onPressed: _actionsReady && widget.againEnabled
+                            ? widget.onAgain
+                            : null,
+                        child: GameText(widget.againLabel,
+                            style: _actionsReady && widget.againEnabled
+                                ? const TextStyle(
+                                    color: Color(0xFF2A1F05),
+                                    fontWeight: FontWeight.w800)
+                                : null),
                       ),
                       if (widget.onExit != null)
-                        TextButton(
-                          onPressed: widget.onExit,
-                          child: const GameText('SALIR DE LA SALA'),
+                        OutlinedButton(
+                          key: const ValueKey('result-home'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: SS.ink,
+                            minimumSize: const Size(48, 48),
+                            shape: const RoundedRectangleBorder(),
+                          ),
+                          onPressed: _actionsReady ? widget.onExit : null,
+                          child: GameText(widget.exitLabel),
                         ),
                     ],
                   )),
@@ -299,44 +352,31 @@ class _EndOverlayState extends State<EndOverlay>
   }
 }
 
-class _ConfettiPainter extends CustomPainter {
+/// A quiet door opening behind the result, rather than a celebration over the text.
+class _DoorRevealPainter extends CustomPainter {
   final double t;
-  _ConfettiPainter(this.t);
-
-  static const _palette = [SS.mute, SS.mana, SS.ink];
-
+  _DoorRevealPainter(this.t);
   @override
   void paint(Canvas canvas, Size size) {
-    final rnd = math.Random(11);
-    final paint = Paint();
-    for (var i = 0; i < 70; i++) {
-      final x0 = rnd.nextDouble() * size.width;
-      final delay = rnd.nextDouble() * 0.3;
-      final speed = 0.7 + rnd.nextDouble() * 0.6;
-      final local = ((t - delay) * speed).clamp(0.0, 1.0);
-      if (local <= 0) continue;
-      final y = -30 + local * (size.height + 60);
-      final x = x0 + math.sin(local * 7 + i) * 26;
-      final w = 4.0 + rnd.nextDouble() * 5;
-      final h = w * (1.4 + rnd.nextDouble());
-      paint.color = _palette[i % _palette.length]
-          .withValues(alpha: (1 - local * 0.55).clamp(0.0, 1.0));
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(local * 9 + i);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset.zero, width: w, height: h),
-          Radius.zero,
-        ),
-        paint,
-      );
-      canvas.restore();
-    }
+    final w = math.min(size.width * .64, 360.0);
+    final h = math.min(size.height * .68, 560.0);
+    final x = (size.width - w) / 2;
+    final y = (size.height - h) / 2;
+    final p = Paint()..isAntiAlias = false;
+    p.color = SS.line.withValues(alpha: .35);
+    canvas.drawRect(Rect.fromLTWH(x - 8, y - 8, w + 16, h + 16), p);
+    p.color = SS.mana.withValues(alpha: .12 * t);
+    canvas.drawRect(Rect.fromLTWH(x, y, w, h), p);
+    final open = Curves.easeInOut.transform(t.clamp(0.0, 1.0));
+    p.color = SS.table.withValues(alpha: .96);
+    canvas.drawRect(Rect.fromLTWH(x, y, w * (1 - .72 * open), h), p);
+    p.color = SS.mana.withValues(alpha: .3);
+    canvas.drawRect(
+        Rect.fromLTWH(x + w * (1 - .72 * open) - 14, y + h * .52, 4, 8), p);
   }
 
   @override
-  bool shouldRepaint(covariant _ConfettiPainter old) => old.t != t;
+  bool shouldRepaint(_DoorRevealPainter old) => old.t != t;
 }
 
 /// Destello de pantalla completa cuando alguien canta. Es el momento más

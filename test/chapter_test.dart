@@ -141,6 +141,7 @@ void main() {
     engine.winner = engine.me.name;
     engine.notifyListeners();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.tap(find.text('LEER DESENLACE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

@@ -166,6 +166,10 @@ class _ChapterScreenState extends State<ChapterScreen> {
                     if (_scene == _Scene.briefing) ...[
                       const GameText('LA PRIMERA MESA', style: SS.title),
                       const SizedBox(height: 12),
+                      const GameText(
+                          'En esta mesa ganás Pulso al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo en +1 o −1. Si comenzás con mano llena, podés cambiar una carta antes de actuar.',
+                          style: SS.body),
+                      const SizedBox(height: 12),
                       GameText(ChapterOne.opening(_progress.memory!),
                           style: SS.body),
                       const SizedBox(height: 16),

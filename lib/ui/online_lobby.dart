@@ -85,7 +85,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         'type': create ? 'create' : 'join',
         'name': _name.text.trim(),
         'code': code,
-        'mode': _mode.index
+        'mode': _mode.index,
+        'rulesEdition': 2
       });
     } on FormatException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -175,6 +176,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     onPressed: _connecting ? null : () => _connect(false),
                     child: const GameText('ENTRAR A LA SALA')),
               ] else ...[
+                GameText(
+                    lobby['rulesEdition'] == 2
+                        ? 'EDICIÓN PULSO'
+                        : 'REGLAS ORIGINALES',
+                    style: SS.sub),
                 const GameText('Compartí este código con tus invitados:',
                     style: SS.body),
                 SelectableText(lobby['code'] as String,

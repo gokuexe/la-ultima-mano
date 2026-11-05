@@ -33,6 +33,72 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## La habitación reacciona (0.3.0)
+
+Cuando tus recuerdos quedan a un ajuste de la salida, los retratos de los
+rivales locales se vuelven hostiles, la luz cambia lentamente y suena un latido
+suave. Al tener 6/7, el ambiente se intensifica. Los diálogos tienen prioridad
+breve, un intervalo mínimo de 12 segundos y un máximo de tres por partida.
+El efecto visual respira una vez y queda estático; no mantiene una animación
+infinita ni tapa los controles. Volumen, silencio y movimiento reducido se respetan.
+
+La atmósfera y los **Guiños al dispositivo** están activos por defecto, también
+al actualizar desde una versión sin esa opción. Podés desactivarlos por separado
+en Ajustes; una elección guardada de desactivación se respeta. Los guiños usan únicamente el
+sistema/plataforma, el idioma elegido dentro del juego y la hora local para
+frases de cuarta pared. No consultan archivos, nombres de usuario, contactos,
+ubicación, micrófono, cámara ni identificadores. El contexto se calcula solo
+al aparecer un diálogo con la opción activa; no se manda por red. En web,
+la plataforma se presenta simplemente como Web. Online, habla la habitación,
+sin atribuir frases a otros jugadores ni consultar sus recuerdos ocultos.
+
+## Confirmación y navegación (0.2.2)
+
+Elegir una carta abre sus objetivos y una confirmación final antes de gastar
+la carta o la lucidez. Podés cancelar en cualquiera de esos pasos; Atrás también
+cierra la selección. Una jugada ya confirmada y resuelta no se deshace.
+
+Atrás o el botón de salida durante una partida piden confirmación. La mesa
+local se pausa mientras elegís; una partida online continúa para el resto.
+El resultado queda visible hasta elegir jugar otra partida o volver al inicio,
+con una protección breve contra toques accidentales al aparecer. En historia
+se conserva la opción de leer el desenlace y el progreso de la victoria.
+Los cambios se comparten entre Android, Linux y web; GameMonetize no se actualiza.
+
+## Audio (0.2.1)
+
+Corrige los efectos silenciosos en Android: SoundPool no emite la confirmación
+que espera `seek(0)`, por lo que nunca se ejecutaba la reproducción. Los efectos
+ahora reinician con `stop` y `resume`, conservando el sonido precargado. La carga
+concurrente se comparte, una reproducción temprana espera la carga y los archivos
+que fallen pueden reintentarse. El cambio se aplica a Android, Linux y web;
+el silencio por volumen cero o publicidad sigue respetándose. La corrección
+no se publica automáticamente en GameMonetize.
+
+## Edición Pulso (0.2.0, prueba)
+
+Clásico e historia usan el catálogo revisado: Parálisis cuesta 3 de lucidez,
+El reflejo sube en 1 un recuerdo propio y baja el otro en 1, e Insomnio solo
+se usa una vez por turno. Los bots conservan lo que han visto con La mirilla
+hasta que ese recuerdo cambia y evalúan combinaciones de dos cartas.
+
+Al cerrar tu turno ganás una carga de Pulso, hasta 3. Anclaje consume las tres
+para ajustar un recuerdo propio en +1 o −1, sin gastar lucidez. No se puede
+activar congelado o después de Parálisis. Al comenzar con mano llena podés
+cambiar una carta antes de actuar, una vez por turno. Rápido tiene 3 de lucidez;
+Farol permite un solo intento de salida por turno. La revancha rota el inicio.
+
+Cada partida completada da 30 puntos por ganar o 10 por perder. Los marcos
+Ámbar y Eco se desbloquean con 40 y 100 puntos; son cosméticos y no alteran
+las cartas. El progreso se guarda localmente. Hay nuevos sonidos originales,
+retratos que parpadean, respuesta al pulsar cartas y una puerta al ganar.
+Las opciones de volumen y movimiento reducido siguen disponibles.
+
+El protocolo distingue ediciones: clientes antiguos mantienen las reglas
+originales; las salas Pulso requieren clientes compatibles. La actualización
+del servidor público se realiza aparte de estos paquetes de prueba. No se
+sustituye el ZIP ni se modifica la revisión pendiente de GameMonetize.
+
 ## Reglas
 
 Jugás contra tres rivales sin conexión. Las cartas modifican dos recuerdos
@@ -296,3 +362,33 @@ Comprueban que terminar turno sea pulsable antes de desplazar, y revisan las
 ```bash
 flutter test tool/render_mobile_preview.dart --concurrency=1 --dart-define=MOBILE_PREVIEW_OUTPUT=/ruta/absoluta/capturas
 ```
+
+### Diagnóstico de balance reproducible
+
+`tool/balance_audit.dart` ejecuta el motor real y su política actual de bots con
+semillas de RNG fijas y temporizadores virtuales. No abre una ventana ni usa un
+emulador. Requiere haber ejecutado `flutter pub get`:
+
+```bash
+dart run tool/balance_audit.dart 1000 /ruta/absoluta/balance-audit.json
+```
+
+Ejecuta 1.000 partidas por escenario: Clásico, Rápido y Farol originales,
+Clásico y Rápido de la edición Pulso, más tres
+experimentos aislados: Rápido con 3 de lucidez, Rápido con 3 de lucidez y
+recambio aleatorio al comenzar con mano llena, y Clásico con ese recambio. El límite es de 400 turnos globales por partida.
+Los casos que llegan al límite se informan aparte: no se cuentan como victorias
+ni se incluyen en la duración media/mediana de las partidas completadas.
+La duración usa turnos, no segundos reales.
+
+Las frecuencias de uso reflejan la heurística de los bots; no son una medida
+directa de fuerza de las cartas ni de victorias de jugadores humanos. Los
+experimentos con recambio aleatorio no están habilitados en la app ni en el servidor;
+la edición Pulso usa el recambio elegido y validado por el motor. También enumera
+estados para comprobar la simetría de El reflejo y el alcance numérico de La
+otra versión, y reproduce intentos repetidos de salida en Farol, acumulación
+de Insomnio e información de La mirilla para bots.
+
+El parámetro opcional `random` de GameEngine permite repetir estas pruebas;
+al omitirlo se conserva la generación aleatoria habitual. El chequeo no cambia
+el catálogo, los costes ni las reglas de ninguna versión publicada.

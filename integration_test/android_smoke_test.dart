@@ -6,6 +6,7 @@ import 'package:la_ultima_mano/main.dart' as app;
 import 'package:la_ultima_mano/play_preferences.dart';
 import 'package:la_ultima_mano/story_progress.dart';
 import 'package:la_ultima_mano/chapter.dart';
+import 'package:la_ultima_mano/sfx.dart';
 import 'package:la_ultima_mano/platform/local_store_native.dart';
 import 'package:la_ultima_mano/online/online_connection.dart';
 import 'package:la_ultima_mano/ui/game_screen.dart';
@@ -30,6 +31,9 @@ void main() {
     expect(story.memory, MemoryPath.door);
     expect(story.saveError, isNull);
     story.dispose();
+    await Sfx.i.init();
+    await Sfx.i.play('memory').timeout(const Duration(seconds: 3));
+    await Sfx.i.play('memory').timeout(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 2));
     expect(find.text('SIT AT THE TABLE'), findsOneWidget);
     await tester.ensureVisible(find.text('SIT AT THE TABLE'));

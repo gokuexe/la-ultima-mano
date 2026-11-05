@@ -5,9 +5,11 @@ import '../play_preferences.dart';
 import '../model.dart';
 import '../sfx.dart';
 import '../theme.dart';
+import '../collection_progress.dart';
 
 class OptionsScreen extends StatelessWidget {
-  const OptionsScreen({super.key});
+  final Map<String, ActionCard>? cards;
+  const OptionsScreen({super.key, this.cards});
   @override
   Widget build(BuildContext context) => DefaultTabController(
       length: 2,
@@ -18,7 +20,8 @@ class OptionsScreen extends StatelessWidget {
               Tab(child: GameText('AJUSTES')),
               Tab(child: GameText('CARTAS'))
             ])),
-        body: const TabBarView(children: [_PreferencesPanel(), CardGuide()]),
+        body: TabBarView(
+            children: [const _PreferencesPanel(), CardGuide(cards: cards)]),
       ));
 }
 
@@ -28,12 +31,47 @@ class _PreferencesPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final preferences = PlayPreferences.instance;
     return ListenableBuilder(
-        listenable: preferences,
+        listenable:
+            Listenable.merge([preferences, CollectionProgress.instance]),
         builder: (context, _) =>
             ListView(padding: const EdgeInsets.all(24), children: [
               const GameText('La mesa también puede escucharte.',
                   style: SS.title),
               const SizedBox(height: 24),
+              GameText(
+                  'Colección: ${CollectionProgress.instance.points} puntos',
+                  style: SS.title),
+              const GameText(
+                  'Victoria: 30 puntos. Partida terminada: 10. Los marcos no cambian las reglas.',
+                  style: SS.sub),
+              DropdownButton<String>(
+                  isExpanded: true,
+                  value: CollectionProgress.instance.frame,
+                  items: [
+                    const DropdownMenuItem(
+                        value: 'plain', child: GameText('Sin marco · libre')),
+                    DropdownMenuItem(
+                        value: 'amber',
+                        enabled: CollectionProgress.instance.unlocked('amber'),
+                        child: const GameText('Marco Ámbar · 40 puntos')),
+                    DropdownMenuItem(
+                        value: 'echo',
+                        enabled: CollectionProgress.instance.unlocked('echo'),
+                        child: const GameText('Marco Eco · 100 puntos')),
+                  ],
+                  onChanged: (name) {
+                    if (name != null) {
+                      CollectionProgress.instance.selectFrame(name);
+                    }
+                  }),
+              if (CollectionProgress.instance.saveError != null)
+                GameText(CollectionProgress.instance.saveError!, style: SS.sub),
+              const SizedBox(height: 16),
+              const GameText('PULSO Y ANCLAJE', style: SS.title),
+              const GameText(
+                  'En la edición Pulso ganás una carga al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo propio en +1 o −1. Al comenzar con mano llena podés cambiar una carta antes de actuar.',
+                  style: SS.body),
+              const SizedBox(height: 16),
               const LanguagePicker(),
               const SizedBox(height: 20),
               GameText('Volumen: ${(preferences.volume * 100).round()} %',
@@ -68,10 +106,27 @@ class _PreferencesPanel extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   title: const GameText('Reducir movimiento'),
                   subtitle: const GameText(
-                      'Sin destellos de pantalla, sacudidas, confeti ni escritura progresiva. Los tiempos de reacción no cambian.'),
+                      'Sin destellos de pantalla, sacudidas, escenas animadas ni escritura progresiva. Los tiempos de reacción no cambian.'),
                   value: preferences.reduceMotion,
                   onChanged: (value) =>
                       preferences.update(reduceMotion: value)),
+              const SizedBox(height: 20),
+              SwitchListTile(
+                  key: const ValueKey('tension-setting'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const GameText('Atmósfera de tensión'),
+                  subtitle: const GameText(
+                      'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.'),
+                  value: preferences.tension,
+                  onChanged: (value) => preferences.update(tension: value)),
+              SwitchListTile(
+                  key: const ValueKey('device-hints-setting'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const GameText('Guiños al dispositivo'),
+                  subtitle: const GameText(
+                      'Activo por defecto. Usa el sistema, el idioma del juego y la hora local en diálogos. Podés desactivarlo. No lee archivos ni datos personales; no se envía al servidor.'),
+                  value: preferences.deviceHints,
+                  onChanged: (value) => preferences.update(deviceHints: value)),
               const SizedBox(height: 20),
               GameText(
                   preferences.saveError ??
@@ -82,7 +137,8 @@ class _PreferencesPanel extends StatelessWidget {
 }
 
 class CardGuide extends StatefulWidget {
-  const CardGuide({super.key});
+  final Map<String, ActionCard>? cards;
+  const CardGuide({super.key, this.cards});
   @override
   State<CardGuide> createState() => _CardGuideState();
 }
@@ -115,7 +171,8 @@ class _CardGuideState extends State<CardGuide> {
 
   @override
   Widget build(BuildContext context) {
-    final cards = kCards.values
+    final catalog = widget.cards ?? kBalancedCards;
+    final cards = catalog.values
         .where((card) =>
             (_family == null || card.family == _family) &&
             normalize(
@@ -143,7 +200,7 @@ class _CardGuideState extends State<CardGuide> {
                 ],
                 onChanged: (value) => setState(() => _family = value)),
             GameText(
-                '${cards.length} de ${kCards.length} cartas · Consultá sin usar lucidez.',
+                '${cards.length} de ${catalog.length} cartas · Consultá sin usar lucidez.',
                 style: SS.sub),
             const GameText('La partida sigue mientras consultás esta guía.',
                 style: SS.sub),

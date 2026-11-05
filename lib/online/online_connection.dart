@@ -105,7 +105,10 @@ class OnlineConnection extends ChangeNotifier {
         case 'state':
           if (!(_joining?.isCompleted ?? true)) _joining!.complete();
           game ??= RemoteGameEngine(
-              this, GameRules(GameMode.values[data['mode'] as int]));
+              this,
+              data['rulesEdition'] == 2
+                  ? GameRules.balanced(GameMode.values[data['mode'] as int])
+                  : GameRules(GameMode.values[data['mode'] as int]));
           game!.apply(data);
         case 'fx':
           game?.receiveFx(data);
@@ -234,6 +237,10 @@ class RemoteGameEngine extends GameEngine {
       player.mana = raw['mana'] as int;
       player.free = raw['free'] as int;
       player.frozen = raw['frozen'] as bool;
+      player.pulse = raw['pulse'] as int? ?? 0;
+      player.insomniaUsed = raw['insomniaUsed'] == true;
+      player.attemptedEscape = raw['attemptedEscape'] == true;
+      player.exchangeAvailable = raw['exchangeAvailable'] == true;
       player.hand.addAll(raw['hand'] == null
           ? List.filled(raw['handCount'] as int, '?')
           : List<String>.from(raw['hand'] as List));
@@ -328,15 +335,21 @@ class RemoteGameEngine extends GameEngine {
   @override
   Future<bool> humanPlay(int handIndex) async {
     if (!myTurn || handIndex < 0 || handIndex >= me.hand.length) return false;
+    final startedRound = round;
     final key = me.hand[handIndex];
-    final card = kCards[key]!;
-    if (card.isReaction ||
-        me.frozen ||
-        (me.free > 0 ? 0 : card.cost) > me.mana) {
+    final card = cards[key]!;
+    if (!canPlayCard(me, card)) {
       return false;
     }
     final q = await collectTargets(key, me);
-    if (q == null || !myTurn) return false;
+    if (q == null || !myTurn || round != startedRound) return false;
+    if (!await confirmPlay(key, me, q)) return false;
+    if (!myTurn ||
+        round != startedRound ||
+        !me.hand.contains(key) ||
+        !canPlayCard(me, card)) {
+      return false;
+    }
     _send({
       'type': 'play',
       'card': key,
@@ -347,6 +360,31 @@ class RemoteGameEngine extends GameEngine {
         'foeColor': q.foeColor?.index
       }
     });
+    return true;
+  }
+
+  @override
+  bool usePulse(int id, CardColor color, int delta) {
+    if (id != 0 ||
+        !canUsePulse(0) ||
+        (delta != 1 && delta != -1) ||
+        me.value(color) + delta < 0 ||
+        me.value(color) + delta > 13) {
+      return false;
+    }
+    _send({'type': 'pulse', 'color': color.index, 'delta': delta});
+    return true;
+  }
+
+  @override
+  bool exchangeCard(int id, int handIndex) {
+    if (id != 0 ||
+        !canExchange(0) ||
+        handIndex < 0 ||
+        handIndex >= me.hand.length) {
+      return false;
+    }
+    _send({'type': 'exchange', 'index': handIndex});
     return true;
   }
 

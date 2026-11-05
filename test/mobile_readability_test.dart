@@ -6,6 +6,7 @@ import 'package:la_ultima_mano/main.dart';
 import 'package:la_ultima_mano/theme.dart';
 import 'package:la_ultima_mano/play_preferences.dart';
 import 'package:la_ultima_mano/engine.dart';
+import 'package:la_ultima_mano/game_config.dart';
 import 'package:la_ultima_mano/model.dart';
 import 'package:la_ultima_mano/l10n/game_text.dart';
 import 'package:la_ultima_mano/ui/game_screen.dart';
@@ -53,10 +54,15 @@ void main() {
           await tester.pumpWidget(const LaUltimaManoApp());
           await tester.pump();
           expect(tester.takeException(), isNull);
-          final engine = GameEngine(humanPlayerIds: const {0, 1, 2, 3});
+          final engine = GameEngine(
+              rules: const GameRules.balanced(),
+              humanPlayerIds: const {0, 1, 2, 3});
           engine.me.red = 5;
           engine.me.blue = 7;
           engine.me.free = 2;
+          engine.me.pulse = 3;
+          engine.me.hand.addAll(List.filled(6 - engine.me.hand.length, 'mas1'));
+          engine.me.exchangeAvailable = true;
           unawaited(Navigator.of(tester.element(find.byType(TitleScreen))).push(
               MaterialPageRoute<void>(
                   builder: (_) => GameScreen(session: engine))));
@@ -101,7 +107,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(320, 800);
     addTearDown(tester.view.reset);
-    for (final card in kCards.values) {
+    for (final card in kBalancedCards.values) {
       await tester.pumpWidget(MaterialApp(
           theme: SS.theme(),
           home: LanguageScope(

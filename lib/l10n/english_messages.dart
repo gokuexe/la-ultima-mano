@@ -1,5 +1,79 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
 const englishMessages = <String, String>{
+  'Atmósfera de tensión': 'Tension atmosphere',
+  'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.':
+      'Soft heartbeats, changing light and restless rivals. The rules stay the same.',
+  'Guiños al dispositivo': 'Device-aware dialogue',
+  'Activo por defecto. Usa el sistema, el idioma del juego y la hora local en diálogos. Podés desactivarlo. No lee archivos ni datos personales; no se envía al servidor.':
+      'Enabled by default. Uses your platform, game language and local time in dialogue. You can turn it off. No files or personal data are read; nothing is sent to the server.',
+  'No. No vas a dejarme otra vez. Alejá la mano de esa puerta.':
+      'No. You are not leaving me again. Take your hand away from that door.',
+  'Casi lo recordás. Qué conveniente. ¿También recordás quién se quedó afuera?':
+      'You almost remember. How convenient. Do you also remember who was left outside?',
+  'Si cerrás el juego, ¿quién se queda mirando desde este lado de la pantalla?':
+      'If you close the game, who keeps watching from this side of the screen?',
+  'La lámpara pierde calor. Algo no quiere que termines esta partida.':
+      'The lamp loses its warmth. Something does not want you to finish this match.',
+  'Los números encajan. La sombra de tu silla, no.':
+      'The numbers fit. The shadow of your chair does not.',
+  'Estás mirando una pantalla. Eso no explica por qué la puerta está detrás de vos.':
+      'You are looking at a screen. That does not explain why the door is behind you.',
+  'Elegiste inglés. Hay cosas que no necesitan traducción.':
+      'You chose English. Some things need no translation.',
+  'Elegiste español. Hay cosas que no necesitan traducción.':
+      'You chose Spanish. Some things need no translation.',
+  'CANCELAR': 'CANCEL',
+  'JUGAR CARTA': 'PLAY CARD',
+  '¿Salir de la partida?': 'Leave this match?',
+  'Saldrás de la sala. La partida online sigue mientras decidís.':
+      'You will leave the room. The online match continues while you decide.',
+  'La partida en curso no se guarda. ¿Querés salir?':
+      'This match will not be saved. Do you want to leave?',
+  'SEGUIR JUGANDO': 'KEEP PLAYING',
+  'SALIR DE LA PARTIDA': 'LEAVE MATCH',
+  '¿Qué querés hacer ahora?': 'What would you like to do now?',
+  'JUGAR OTRA PARTIDA': 'PLAY ANOTHER MATCH',
+  'VOLVER AL INICIO': 'BACK TO MENU',
+  "UN USO POR TURNO": "ONCE PER TURN",
+  "Sin destellos de pantalla, sacudidas, escenas animadas ni escritura progresiva. Los tiempos de reacción no cambian.":
+      "No screen flashes, shaking, animated scenes or typewriter text. Reaction times do not change.",
+  "En esta mesa ganás Pulso al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo en +1 o −1. Si comenzás con mano llena, podés cambiar una carta antes de actuar.":
+      "At this table, gain Pulse at the end of your turn. With 3 charges, Anchor adjusts a memory by +1 or −1. When starting with a full hand, you may exchange one card before acting.",
+  "EDICIÓN PULSO": "PULSE EDITION",
+  "REGLAS ORIGINALES": "ORIGINAL RULES",
+  "Sumá 1 a un recuerdo tuyo y restá 1 al otro.":
+      "Add 1 to one of your memories and subtract 1 from the other.",
+  "Ganá 2 lucidez. Al cerrar el turno sumás 0–5 al azar a tu roja. Un uso por turno.":
+      "Gain 2 lucidity. At the end of your turn, add a random 0–5 to your red card. Once per turn.",
+  "3 lucidez por turno, mano más chica, reacciones de 5 s y recambio. Límites 0/13 sin quemar.":
+      "3 lucidity per turn, a smaller hand, 5-second reactions and a hand exchange. Clamp to 0/13 without burning.",
+  "Cambiar un recuerdo": "Exchange a memory",
+  "Elegí una carta para cambiar por otra. Un recambio al comenzar con mano llena.":
+      "Choose a card to replace. One exchange when starting with a full hand.",
+  "ANCLAJE · elegí un recuerdo": "ANCHOR · choose a memory",
+  "ANCLAJE · ajustá el recuerdo": "ANCHOR · adjust the memory",
+  "Ganás una carga al cerrar tu turno. Con 3, Anclaje ajusta un recuerdo en +1 o −1.":
+      "Gain a charge at the end of your turn. With 3 charges, Anchor adjusts a memory by +1 or −1.",
+  "CAMBIAR 1 CARTA": "EXCHANGE 1 CARD",
+  "Un latido. El recuerdo vuelve a su sitio.":
+      "One heartbeat. The memory falls back into place.",
+  "Victoria: 30 puntos. Partida terminada: 10. Los marcos no cambian las reglas.":
+      "Win: 30 points. Completed match: 10. Frames do not change the rules.",
+  "Sin marco · libre": "No frame · free",
+  "Marco Ámbar · 40 puntos": "Amber frame · 40 points",
+  "Marco Eco · 100 puntos": "Echo frame · 100 points",
+  "PULSO Y ANCLAJE": "PULSE AND ANCHOR",
+  "En la edición Pulso ganás una carga al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo propio en +1 o −1. Al comenzar con mano llena podés cambiar una carta antes de actuar.":
+      "In the Pulse edition, gain a charge at the end of your turn. With 3 charges, Anchor adjusts one of your memories by +1 or −1. When starting with a full hand, you may replace one card before acting.",
+  "No se pudo leer la colección.": "Could not read your collection.",
+  "La colección guardada no era válida.": "The saved collection was invalid.",
+  "Los puntos funcionan ahora, pero no pudieron guardarse.":
+      "Your points work now, but could not be saved.",
+  "Anclaje no está disponible.": "Anchor is not available.",
+  "El recambio no está disponible.": "The exchange is not available.",
+  "Versión de reglas no compatible.": "Unsupported rules version.",
+  "Esta sala usa la edición Pulso. Actualizá el juego.":
+      "This room uses the Pulse edition. Update the game.",
   "JUGAR RECUERDO": "PLAY MEMORY",
   "La puerta no responde. Necesitás un 6 y un 7, en cualquier orden.":
       "The door does not respond. You need a 6 and a 7, in either order.",

@@ -7,7 +7,21 @@ import 'game_config.dart';
 import 'model.dart';
 import 'story.dart';
 
-enum FxKind { play, draw, mana, burn, block, sing, deny, win, lose, turn }
+enum FxKind {
+  play,
+  draw,
+  mana,
+  burn,
+  block,
+  sing,
+  deny,
+  win,
+  lose,
+  turn,
+  pulse,
+  charge,
+  exchange
+}
 
 class Fx {
   final FxKind kind;
@@ -72,8 +86,11 @@ class _Move {
 }
 
 class GameEngine extends GameNotifier {
-  final Random _rng = Random();
+  final Random _rng;
   final GameRules rules;
+  Map<String, ActionCard> get cards =>
+      rules.isBalanced ? kBalancedCards : kCards;
+  int _roundStarter = -1;
 
   late List<Player> players;
   late List<String> deck;
@@ -139,15 +156,20 @@ class GameEngine extends GameNotifier {
   }
 
   GameEngine(
-      {this.rules = const GameRules(),
+      {Random? random,
+      this.rules = const GameRules(),
       this.humanPlayerIds = const {0},
-      this.playerNames = Story.opponents}) {
+      this.playerNames = Story.opponents})
+      : _rng = random ?? Random() {
     newGame();
   }
 
   /// ¿Puede este jugador intentar cantar ahora?
   bool canSing(int id) {
     final p = players[id];
+    if (rules.isBalanced && rules.allowBluffSing && p.attemptedEscape) {
+      return false;
+    }
     if (p.isWin) return true;
     if (!rules.allowBluffSing) return false;
     return p.distance <= rules.maxBluffDistance;
@@ -190,6 +212,10 @@ class GameEngine extends GameNotifier {
 
   Player get me => players[0];
   Player get current => players[turn];
+
+  /// The app enables this for human input; bots and protocol commands are unchanged.
+  bool confirmHumanPlays = false;
+
   bool get myTurn => turn == 0 && !busy && winner == null && choice == null;
 
   List<Player> foesOf(int id) => players.where((p) => p.id != id).toList();
@@ -249,7 +275,8 @@ class GameEngine extends GameNotifier {
       'Empieza la partida (${rules.label}). La puerta sigue cerrada. Buscá el 6 y el 7.',
       loud: true,
     );
-    _startTurn(0);
+    _roundStarter = rules.isBalanced ? (_roundStarter + 1) % 4 : 0;
+    _startTurn(_roundStarter);
   }
 
   void _log(String text, {bool loud = false}) {
@@ -267,13 +294,109 @@ class GameEngine extends GameNotifier {
   // ----------------------------------------------------------- efectos ------
 
   void _bump(Player p, CardColor c, int n) {
+    if (n != 0) _forgetChangedCard(p.id, c);
     p.setValue(c, p.value(c) + n);
     _checkBurn(p, c);
   }
 
   void _assign(Player p, CardColor c, int v) {
+    if (p.value(c) != v) _forgetChangedCard(p.id, c);
     p.setValue(c, v);
     _checkBurn(p, c);
+  }
+
+  void _forgetChangedCard(int id, CardColor color) {
+    if (!rules.isBalanced) return;
+    for (final knownCards in knowledge.values) {
+      knownCards.remove('$id-${color.index}');
+    }
+  }
+
+  bool canPlayCard(Player p, ActionCard card) =>
+      !card.isReaction &&
+      !p.frozen &&
+      !p.endNow &&
+      !(rules.isBalanced && card.id == 'sobrecarga' && p.insomniaUsed) &&
+      (p.free > 0 ? 0 : card.cost) <= p.mana;
+
+  bool _canAct(int id) =>
+      !_dead &&
+      !paused &&
+      !busy &&
+      choice == null &&
+      winner == null &&
+      turn == id;
+  bool canUsePulse(int id) =>
+      rules.isBalanced &&
+      _canAct(id) &&
+      players[id].pulse >= 3 &&
+      !players[id].frozen &&
+      !players[id].endNow;
+  bool canExchange(int id) =>
+      rules.isBalanced &&
+      _canAct(id) &&
+      players[id].exchangeAvailable &&
+      players[id].hand.length >= rules.maxHandSize;
+
+  bool usePulse(int id, CardColor color, int delta) {
+    if (!canUsePulse(id) || (delta != -1 && delta != 1)) return false;
+    final p = players[id];
+    final value = p.value(color) + delta;
+    if (value < 0 || value > 13) return false;
+    p.pulse = 0;
+    p.exchangeAvailable = false;
+    _assign(p, color, value);
+    _log(
+        '${p.name} usa Anclaje: ${delta > 0 ? '+1' : '−1'} en su ${colorName(color)}.',
+        loud: true);
+    _emit(Fx(FxKind.pulse, playerId: id, color: color, actorName: p.name));
+    _touch();
+    return true;
+  }
+
+  bool exchangeCard(int id, int handIndex) {
+    if (!canExchange(id) ||
+        handIndex < 0 ||
+        handIndex >= players[id].hand.length) {
+      return false;
+    }
+    final p = players[id];
+    p.exchangeAvailable = false;
+    p.hand.removeAt(handIndex);
+    _drawCard(p, quiet: true);
+    _log('${p.name} cambia un recuerdo de su mano.');
+    _emit(Fx(FxKind.exchange, playerId: id, actorName: p.name));
+    _touch();
+    return true;
+  }
+
+  Future<bool> humanExchange() async {
+    if (!canExchange(0)) return false;
+    final picked = await ask(
+        title: 'Cambiar un recuerdo',
+        desc:
+            'Elegí una carta para cambiar por otra. Un recambio al comenzar con mano llena.',
+        options: [
+          for (var i = 0; i < me.hand.length; i++)
+            ChoiceOption(cards[me.hand[i]]!.name, i),
+          const ChoiceOption('Dejar pasar', null)
+        ]);
+    return picked is int && exchangeCard(0, picked);
+  }
+
+  Future<bool> humanPulse() async {
+    if (!canUsePulse(0)) return false;
+    final color = await ask(title: 'ANCLAJE · elegí un recuerdo', options: [
+      ChoiceOption('Roja · ${me.red}', CardColor.red, tint: CardColor.red),
+      ChoiceOption('Azul · ${me.blue}', CardColor.blue, tint: CardColor.blue)
+    ]);
+    if (color is! CardColor || !canUsePulse(0)) return false;
+    final delta = await ask(title: 'ANCLAJE · ajustá el recuerdo', options: [
+      if (me.value(color) < 13) const ChoiceOption('+1', 1),
+      if (me.value(color) > 0) const ChoiceOption('−1', -1),
+      const ChoiceOption('Dejar pasar', null)
+    ]);
+    return delta is int && usePulse(0, color, delta);
   }
 
   void _checkBurn(Player p, CardColor c) {
@@ -337,7 +460,7 @@ class GameEngine extends GameNotifier {
 
   /// Junta los objetivos que la carta necesita preguntándole al jugador.
   Future<Targets?> collectTargets(String cardId, Player actor) async {
-    final card = kCards[cardId]!;
+    final card = cards[cardId]!;
     final q = Targets();
     for (final need in card.needs) {
       if (need == Need.own || need == Need.color) {
@@ -399,7 +522,7 @@ class GameEngine extends GameNotifier {
       if (_dead || gameId != _gameId) return null;
       final opts = p.hand
           .toSet()
-          .where((k) => kCards[k]!.react == kind && kCards[k]!.cost <= p.mana)
+          .where((k) => cards[k]!.react == kind && cards[k]!.cost <= p.mana)
           .toList();
       if (opts.isEmpty) continue;
 
@@ -407,7 +530,7 @@ class GameEngine extends GameNotifier {
       if (p.human) {
         final list = <ChoiceOption>[
           for (final k in opts)
-            ChoiceOption('${kCards[k]!.name} · ${kCards[k]!.cost} lucidez', k),
+            ChoiceOption('${cards[k]!.name} · ${cards[k]!.cost} lucidez', k),
           const ChoiceOption('Dejar pasar', null),
         ];
         final r = await ask(
@@ -435,9 +558,9 @@ class GameEngine extends GameNotifier {
 
       if (_dead || gameId != _gameId) return null;
       if (chosen != null) {
-        p.mana -= kCards[chosen]!.cost;
+        p.mana -= cards[chosen]!.cost;
         p.hand.remove(chosen);
-        _log('${p.name} responde con ${kCards[chosen]!.name}.', loud: true);
+        _log('${p.name} responde con ${cards[chosen]!.name}.', loud: true);
         _emit(Fx(FxKind.block,
             playerId: p.id, actorName: p.name, cardId: chosen));
         return chosen;
@@ -451,7 +574,12 @@ class GameEngine extends GameNotifier {
   Future<void> playCard(Player actor, String cardId, Targets? q) async {
     if (_dead) return;
     final gameId = _gameId;
-    final card = kCards[cardId]!;
+    final card = cards[cardId]!;
+    if (rules.isBalanced && cardId == 'sobrecarga' && actor.insomniaUsed) {
+      return;
+    }
+    actor.exchangeAvailable = false;
+    if (cardId == 'sobrecarga') actor.insomniaUsed = true;
     if (actor.free > 0) {
       actor.free--;
     } else {
@@ -484,18 +612,50 @@ class GameEngine extends GameNotifier {
     _touch();
   }
 
+  Future<bool> confirmPlay(String cardId, Player actor, Targets targets) async {
+    if (!confirmHumanPlays) return true;
+    final card = cards[cardId]!;
+    final details = <String>[
+      card.desc,
+      'Coste: ${actor.free > 0 ? 0 : card.cost} lucidez',
+      if (targets.own != null)
+        'Tu recuerdo: ${colorName(targets.own!)} · ${actor.value(targets.own!)}',
+      if (targets.color != null) 'Color: ${colorName(targets.color!)}',
+      if (targets.foe != null) 'Rival: ${players[targets.foe!].name}',
+      if (targets.foeColor != null)
+        'Recuerdo rival: ${colorName(targets.foeColor!)}',
+    ];
+    final accepted = await ask(
+      title: 'Confirmar: ${card.name}',
+      desc: details.join('\n'),
+      options: const [
+        ChoiceOption('JUGAR CARTA', true),
+        ChoiceOption('CANCELAR', null),
+      ],
+    );
+    return accepted == true;
+  }
+
   Future<bool> humanPlay(int handIndex) async {
     if (!myTurn) return false;
     final p = me;
+    final gameId = _gameId;
     if (handIndex < 0 || handIndex >= p.hand.length) return false;
     final cardId = p.hand[handIndex];
-    final card = kCards[cardId]!;
-    if (card.isReaction || p.frozen) return false;
-    final cost = p.free > 0 ? 0 : card.cost;
-    if (cost > p.mana) return false;
+    final card = cards[cardId]!;
+    if (!canPlayCard(p, card)) {
+      return false;
+    }
 
     final q = await collectTargets(cardId, p);
-    if (q == null) return false;
+    if (q == null || !_canAct(0) || gameId != _gameId) return false;
+    if (!await confirmPlay(cardId, p, q)) return false;
+    if (!_canAct(0) ||
+        gameId != _gameId ||
+        !p.hand.contains(cardId) ||
+        !canPlayCard(p, card)) {
+      return false;
+    }
     await playCard(p, cardId, q);
     if (p.endNow) await endTurn();
     return true;
@@ -509,6 +669,8 @@ class GameEngine extends GameNotifier {
     final p = players[id];
     if (winner != null || !canSing(id)) return false;
     final genuine = p.isWin;
+    p.attemptedEscape = true;
+    p.exchangeAvailable = false;
 
     busy = true;
     _log('${p.name} canta ¡Lo recuerdo!', loud: true);
@@ -554,9 +716,13 @@ class GameEngine extends GameNotifier {
     p.pending = 0;
     p.free = 0;
     p.overload = false;
+    p.insomniaUsed = false;
+    p.attemptedEscape = false;
     p.endNow = false;
     p.frozen = false;
     _drawCard(p);
+    p.exchangeAvailable =
+        rules.isBalanced && p.hand.length >= rules.maxHandSize;
     _log('— Turno de ${p.name} —');
     _emit(Fx(FxKind.turn, playerId: i));
     _touch();
@@ -566,7 +732,8 @@ class GameEngine extends GameNotifier {
   }
 
   Future<void> endTurn() async {
-    if (_dead || winner != null) return;
+    if (_dead || winner != null || paused || busy || choice != null) return;
+    busy = true;
     final gameId = _gameId;
     final p = current;
     if (p.overload) {
@@ -578,6 +745,11 @@ class GameEngine extends GameNotifier {
       await _wait(600);
     }
     if (_dead || gameId != _gameId || winner != null) return;
+    if (rules.isBalanced && p.pulse < 3) {
+      p.pulse++;
+      _emit(Fx(FxKind.charge, playerId: p.id, actorName: p.name));
+    }
+    busy = false;
     _startTurn((turn + 1) % players.length);
   }
 
@@ -594,6 +766,36 @@ class GameEngine extends GameNotifier {
     final gameId = _gameId;
     final p = players[i];
     await _wait(750);
+    if (_dead || gameId != _gameId || winner != null) return;
+    if (rules.isBalanced) {
+      if (canExchange(i) && _bestMove(p) == null) {
+        exchangeCard(i, _discardIndex(p));
+      }
+      if (canUsePulse(i)) {
+        CardColor? bestColor;
+        var bestDelta = 0;
+        var distance = p.distance;
+        for (final color in CardColor.values) {
+          for (final delta in [-1, 1]) {
+            final value = p.value(color) + delta;
+            if (value < 0 || value > 13) continue;
+            final clone = Player(
+                id: p.id,
+                name: p.name,
+                human: p.human,
+                red: p.red,
+                blue: p.blue)
+              ..setValue(color, value);
+            if (clone.distance < distance) {
+              distance = clone.distance;
+              bestColor = color;
+              bestDelta = delta;
+            }
+          }
+        }
+        if (bestColor != null) usePulse(i, bestColor, bestDelta);
+      }
+    }
     for (var step = 0; step < 4; step++) {
       if (_dead || gameId != _gameId || winner != null) return;
       if (canSing(i)) {
@@ -630,8 +832,8 @@ class GameEngine extends GameNotifier {
     }
 
     for (final key in p.hand.toSet()) {
-      final card = kCards[key]!;
-      if (card.isReaction) continue;
+      final card = cards[key]!;
+      if (card.isReaction || !canPlayCard(p, card)) continue;
       final cost = p.free > 0 ? 0 : card.cost;
       if (cost > p.mana) continue;
 
@@ -653,6 +855,12 @@ class GameEngine extends GameNotifier {
       }
     }
 
+    if (rules.isBalanced) {
+      final combo = _ownCombo(p);
+      if (combo != null && (best == null || combo.score < best!.score)) {
+        best = combo;
+      }
+    }
     final chosen = best;
     if (chosen == null) return null;
     if (chosen.score >= cur && cur > 0) {
@@ -662,10 +870,88 @@ class GameEngine extends GameNotifier {
     return chosen;
   }
 
+  int _discardIndex(Player p) {
+    var chosen = 0;
+    var worst = -999.0;
+    for (var i = 0; i < p.hand.length; i++) {
+      final c = cards[p.hand[i]]!;
+      var score = c.isReaction
+          ? 1.0
+          : c.blind
+              ? 2.0
+              : 4.0;
+      if (!c.isReaction &&
+          !c.blind &&
+          !{'sobrecarga', 'dobleJugada', 'respiro'}.contains(c.id)) {
+        final distances = _enumerateOwn(c).map((q) => _simulate(p, c.id, q));
+        if (distances.isNotEmpty) score += distances.reduce(min) - p.distance;
+      }
+      if (score > worst) {
+        worst = score;
+        chosen = i;
+      }
+    }
+    return chosen;
+  }
+
+  _Move? _ownCombo(Player p) {
+    _Move? best;
+    final keys = p.hand.toSet().where((k) =>
+        !cards[k]!.isReaction &&
+        !cards[k]!.blind &&
+        !{'sobrecarga', 'dobleJugada', 'respiro'}.contains(k));
+    for (final first in keys) {
+      final a = cards[first]!;
+      final costA = p.free > 0 ? 0 : a.cost;
+      if (costA > p.mana) continue;
+      for (final qa in _enumerateOwn(a)) {
+        final clone = Player(
+            id: p.id, name: p.name, human: p.human, red: p.red, blue: p.blue);
+        final ca = _SimCtx(clone, qa, rules);
+        a.effect?.call(ca);
+        if (ca.burned) continue;
+        for (final second in keys) {
+          if (second == first && p.hand.where((id) => id == first).length < 2) {
+            continue;
+          }
+          final b = cards[second]!;
+          final costB = p.free > 1 ? 0 : b.cost;
+          if (costA + costB > p.mana) continue;
+          for (final qb in _enumerateOwn(b)) {
+            final after = Player(
+                id: p.id,
+                name: p.name,
+                human: p.human,
+                red: clone.red,
+                blue: clone.blue);
+            final cb = _SimCtx(after, qb, rules);
+            b.effect?.call(cb);
+            if (cb.burned) continue;
+            final score = after.distance + (costA + costB) * .02;
+            if (after.distance < p.distance &&
+                (best == null || score < best.score)) {
+              best = _Move(first, qa, score);
+            }
+          }
+        }
+      }
+    }
+    return best;
+  }
+
   CardColor _randomColor() => _rng.nextBool() ? CardColor.red : CardColor.blue;
 
   Targets _randomTargets(Player p, ActionCard card) {
     final q = Targets();
+    if (rules.isBalanced && card.id == 'ojear') {
+      final unseen = <Targets>[
+        for (final foe in foesOf(p.id))
+          for (final color in CardColor.values)
+            if (!seesCard(foe.id, color, viewerId: p.id))
+              Targets(foe: foe.id, foeColor: color)
+      ];
+      if (unseen.isNotEmpty) return unseen[_rng.nextInt(unseen.length)];
+    }
     if (card.needs.contains(Need.own)) q.own = _pickBestOwn(p);
     if (card.needs.contains(Need.color)) q.color = _randomColor();
     q.foe = _pickFoe(p);
@@ -678,10 +964,31 @@ class GameEngine extends GameNotifier {
   /// Hidden rival values must not influence bot targeting.
   int _pickFoe(Player p) {
     final foes = foesOf(p.id);
+    if (rules.isBalanced) {
+      final knownThreats = foes
+          .where((f) =>
+              seesCard(f.id, CardColor.red, viewerId: p.id) &&
+              seesCard(f.id, CardColor.blue, viewerId: p.id) &&
+              f.isWin)
+          .toList();
+      if (knownThreats.isNotEmpty) return knownThreats.first.id;
+    }
     return foes[_rng.nextInt(foes.length)].id;
   }
 
-  CardColor _pickFoeColor(Player foe, Player self) => _randomColor();
+  CardColor _pickFoeColor(Player foe, Player self) {
+    if (rules.isBalanced) {
+      final visible = CardColor.values
+          .where((c) => seesCard(foe.id, c, viewerId: self.id))
+          .toList();
+      if (visible.isNotEmpty) {
+        visible.sort((a, b) =>
+            (foe.value(a) - 6.5).abs().compareTo((foe.value(b) - 6.5).abs()));
+        return visible.first;
+      }
+    }
+    return _randomColor();
+  }
 
   /// Para cartas que también tocan una carta propia, el bot al menos elige la
   /// suya con criterio aunque el objetivo rival sea a ciegas.
@@ -712,7 +1019,7 @@ class GameEngine extends GameNotifier {
         id: p.id, name: p.name, human: p.human, red: p.red, blue: p.blue);
     final ctx = _SimCtx(clone, q, rules);
     try {
-      kCards[key]!.effect?.call(ctx);
+      cards[key]!.effect?.call(ctx);
     } catch (_) {
       return 99;
     }
@@ -747,7 +1054,7 @@ class _Ctx implements EffectCtx {
 
   @override
   void reveal(Player p, CardColor c) {
-    if (_self.human) {
+    if (_self.human || e.rules.isBalanced) {
       e.knowledge.putIfAbsent(_self.id, () => {}).add('${p.id}-${c.index}');
       e._log('${_self.name} mira la ${colorName(c)} de ${p.name}.', loud: true);
     } else {

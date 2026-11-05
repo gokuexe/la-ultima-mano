@@ -5,12 +5,15 @@ import 'sfx.dart';
 
 /// Local preferences only. No account or network is involved.
 class PlayPreferences extends ChangeNotifier {
-  static final instance = PlayPreferences(store: createStore('preferences'));
+  static PlayPreferences instance =
+      PlayPreferences(store: createStore('preferences'));
   final LocalStore? store;
   PlayPreferences({this.store});
   double volume = 1;
   double textScale = 1;
   bool reduceMotion = false;
+  bool tension = true;
+  bool deviceHints = true;
   String language = 'es';
   String? saveError;
   Future<void> _writes = Future<void>.value();
@@ -21,6 +24,8 @@ class PlayPreferences extends ChangeNotifier {
     textScale = 1;
     reduceMotion = false;
     language = 'es';
+    tension = true;
+    deviceHints = true;
     try {
       final raw = await store?.read();
       if (raw != null) {
@@ -32,6 +37,8 @@ class PlayPreferences extends ChangeNotifier {
           textScale = (t.clamp(1, 1.2) * 10).round() / 10;
         }
         reduceMotion = data['reduceMotion'] == true;
+        tension = data['tension'] != false;
+        deviceHints = data['deviceHints'] != false;
         language = data['language'] == 'en' ? 'en' : 'es';
       }
     } on StorageFailure {
@@ -56,12 +63,16 @@ class PlayPreferences extends ChangeNotifier {
       {double? volume,
       double? textScale,
       bool? reduceMotion,
+      bool? tension,
+      bool? deviceHints,
       String? language}) {
     if (volume != null && volume.isFinite) this.volume = volume.clamp(0, 1);
     if (textScale != null && textScale.isFinite) {
       this.textScale = (textScale.clamp(1, 1.2) * 10).round() / 10;
     }
     if (reduceMotion != null) this.reduceMotion = reduceMotion;
+    if (tension != null) this.tension = tension;
+    if (deviceHints != null) this.deviceHints = deviceHints;
     if (language == 'en' || language == 'es') this.language = language!;
     _applySound();
     notifyListeners();
@@ -69,6 +80,8 @@ class PlayPreferences extends ChangeNotifier {
       'volume': this.volume,
       'textScale': this.textScale,
       'reduceMotion': this.reduceMotion,
+      'tension': this.tension,
+      'deviceHints': this.deviceHints,
       'language': this.language
     });
     _writes = _writes.then((_) async {

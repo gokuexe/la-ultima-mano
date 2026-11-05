@@ -16,6 +16,8 @@ import 'ui/archive_screen.dart';
 import 'play_preferences.dart';
 import 'portal/portal_ads.dart';
 import 'story_progress.dart';
+import 'collection_progress.dart';
+import 'platform/local_store.dart';
 import 'ui/chapter_screen.dart';
 import 'ui/options_screen.dart';
 
@@ -23,6 +25,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PlayPreferences.instance.load();
   await StoryProgress.instance.load();
+  CollectionProgress.instance =
+      CollectionProgress(store: createStore('collection'));
+  await CollectionProgress.instance.load();
   PortalAds.instance.initialize();
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
@@ -136,7 +141,7 @@ class _TitleScreenState extends State<TitleScreen>
       await PortalAds.instance.requestBreak();
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => GameScreen(rules: GameRules(_mode))));
+          builder: (_) => GameScreen(rules: GameRules.balanced(_mode))));
     } finally {
       if (mounted) setState(() => _starting = false);
     }
@@ -187,6 +192,8 @@ class _TitleScreenState extends State<TitleScreen>
                                       CrossAxisAlignment.stretch,
                                   children: [
                                 const LanguagePicker(),
+                                const GameText('EDICIÓN PULSO',
+                                    style: SS.sub, textAlign: TextAlign.center),
                                 OutlinedButton(
                                   onPressed: () => Navigator.of(context).push(
                                       MaterialPageRoute<void>(
@@ -280,8 +287,8 @@ class _TitleScreenState extends State<TitleScreen>
                                           ),
                                           onPressed: () =>
                                               setState(() => _mode = mode),
-                                          child:
-                                              GameText(GameRules(mode).label),
+                                          child: GameText(
+                                              GameRules.balanced(mode).label),
                                         ),
                                       ),
                                     )
@@ -290,7 +297,8 @@ class _TitleScreenState extends State<TitleScreen>
                                 ConstrainedBox(
                                     constraints:
                                         const BoxConstraints(minHeight: 42),
-                                    child: GameText(GameRules(_mode).blurb,
+                                    child: GameText(
+                                        GameRules.balanced(_mode).blurb,
                                         textAlign: TextAlign.center,
                                         style: SS.sub)),
                                 const SizedBox(height: 10),

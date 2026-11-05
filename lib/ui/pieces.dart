@@ -13,6 +13,7 @@ import 'pixel_art.dart';
 class RivalPanel extends StatelessWidget {
   final Player player;
   final bool active;
+  final bool hostile;
   final bool seesRed;
   final bool seesBlue;
 
@@ -20,6 +21,7 @@ class RivalPanel extends StatelessWidget {
     super.key,
     required this.player,
     required this.active,
+    this.hostile = false,
     required this.seesRed,
     required this.seesBlue,
   });
@@ -27,13 +29,19 @@ class RivalPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 280),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 280),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: active ? SS.surfaceUp : SS.surface,
         borderRadius: BorderRadius.zero,
         border: Border.all(
-          color: active ? SS.mana : SS.line,
+          color: hostile
+              ? SS.rojoUp
+              : active
+                  ? SS.mana
+                  : SS.line,
           width: active ? 1.6 : 1,
         ),
         boxShadow: active
@@ -48,7 +56,8 @@ class RivalPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PixelPortrait(character: player.id - 1, active: active),
+          PixelPortrait(
+              character: player.id - 1, active: active, hostile: hostile),
           const SizedBox(height: 4),
           GameText(
             player.name,
@@ -76,6 +85,19 @@ class RivalPanel extends StatelessWidget {
               style: const TextStyle(fontSize: 14, color: SS.mute)),
           const SizedBox(height: 4),
           ManaPips(value: player.mana, max: 5, size: 5),
+          if (player.pulse > 0)
+            Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Tooltip(
+                    message: context.tr('ANCLAJE ${player.pulse}/3'),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      for (var i = 0; i < 3; i++)
+                        Container(
+                            margin: const EdgeInsets.only(right: 3),
+                            width: 7,
+                            height: 7,
+                            color: i < player.pulse ? SS.react : SS.surfaceUp)
+                    ]))),
         ],
       ),
     );
@@ -235,11 +257,15 @@ class HandCard extends StatefulWidget {
   final ActionCard card;
   final bool enabled;
   final VoidCallback onTap;
+  final String? disabledReason;
+  final int? effectiveCost;
   const HandCard(
       {super.key,
       required this.card,
       required this.enabled,
-      required this.onTap});
+      required this.onTap,
+      this.disabledReason,
+      this.effectiveCost});
   @override
   State<HandCard> createState() => _HandCardState();
 }
@@ -247,6 +273,7 @@ class HandCard extends StatefulWidget {
 class _HandCardState extends State<HandCard> {
   bool _hover = false;
   bool _back = false;
+  bool _pressed = false;
   @override
   Widget build(BuildContext context) {
     final v = visualFor(widget.card.id);
@@ -286,15 +313,27 @@ class _HandCardState extends State<HandCard> {
               ])),
           Expanded(
               child: GestureDetector(
+            onTapDown: (_) {
+              if (widget.enabled && !MediaQuery.disableAnimationsOf(context)) {
+                setState(() => _pressed = true);
+              }
+            },
+            onTapCancel: () => setState(() => _pressed = false),
+            onTapUp: (_) => setState(() => _pressed = false),
             behavior: HitTestBehavior.opaque,
             onTap: _back
                 ? () => setState(() => _back = false)
                 : widget.enabled
                     ? widget.onTap
                     : null,
-            child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 160),
-                child: _back ? _memory(v) : _face(v, accent)),
+            child: AnimatedScale(
+                scale: _pressed ? 0.97 : 1.0,
+                duration: const Duration(milliseconds: 90),
+                child: AnimatedSwitcher(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 160),
+                    child: _back ? _memory(v) : _face(v, accent))),
           )),
         ]),
       ),
@@ -323,7 +362,7 @@ class _HandCardState extends State<HandCard> {
           Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: GameText(
-                  '${widget.card.cost} LUCIDEZ${widget.card.isReaction ? ' · RESPUESTA' : ''}',
+                  '${widget.effectiveCost ?? widget.card.cost} LUCIDEZ${widget.card.isReaction ? ' · RESPUESTA' : ''}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 14, color: SS.mana))),
@@ -339,7 +378,9 @@ class _HandCardState extends State<HandCard> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               color: SS.table,
               child: GameText(
-                  widget.enabled ? 'JUGAR RECUERDO' : 'ESPERÁ TU MOMENTO',
+                  widget.enabled
+                      ? 'JUGAR RECUERDO'
+                      : widget.disabledReason ?? 'ESPERÁ TU MOMENTO',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -35,6 +35,10 @@ class Player {
   int pending = 0;
   int free = 0;
   bool overload = false;
+  bool insomniaUsed = false;
+  bool exchangeAvailable = false;
+  bool attemptedEscape = false;
+  int pulse = 0;
   bool endNow = false;
   bool frozen = false;
   final List<String> hand = [];
@@ -333,6 +337,45 @@ final Map<String, ActionCard> kCards = {
     cost: 2,
     family: CardFamily.reaccion,
     react: ReactKind.sing,
+  ),
+};
+
+/// Edition 2 is opt-in. The original catalog remains available for older rooms.
+final Map<String, ActionCard> kBalancedCards = {
+  ...kCards,
+  'congelar': const ActionCard(
+    id: 'congelar',
+    name: 'Parálisis',
+    desc: 'Cancela la carta y el rival no juega más este turno.',
+    cost: 3,
+    family: CardFamily.reaccion,
+    react: ReactKind.card,
+  ),
+  'volteo': ActionCard(
+    id: 'volteo',
+    name: 'El reflejo',
+    desc: 'Sumá 1 a un recuerdo tuyo y restá 1 al otro.',
+    cost: 2,
+    family: CardFamily.interaccion,
+    needs: const [Need.own],
+    effect: (c) {
+      final chosen = c.q.own!;
+      c.bump(c.self, chosen, 1);
+      c.bump(
+          c.self, chosen == CardColor.red ? CardColor.blue : CardColor.red, -1);
+    },
+  ),
+  'sobrecarga': ActionCard(
+    id: 'sobrecarga',
+    name: 'Insomnio',
+    desc:
+        'Ganá 2 lucidez. Al cerrar el turno sumás 0–5 al azar a tu roja. Un uso por turno.',
+    cost: 0,
+    family: CardFamily.riesgo,
+    effect: (c) {
+      c.self.mana = (c.self.mana + 2).clamp(0, 7);
+      c.self.overload = true;
+    },
   ),
 };
 
