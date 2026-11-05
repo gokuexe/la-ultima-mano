@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../collection_progress.dart';
 
 /// La carta grande del jugador. Todo el "jugo" del juego pasa por acá: el
 /// número cambia con un salto, la carta tiembla y suelta brasas al quemarse, y
@@ -182,6 +183,15 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
+                        if (CollectionProgress.instance.frame != 'plain')
+                          Positioned.fill(
+                              child: IgnorePointer(
+                                  child: CustomPaint(
+                                      painter: _MemoryFramePainter(
+                                          CollectionProgress.instance.frame ==
+                                                  'amber'
+                                              ? SS.mana
+                                              : SS.react)))),
                         // destello blanco del quemado
                         if (b > 0 && b < 0.4)
                           Positioned.fill(
@@ -259,4 +269,24 @@ class _EmberPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EmberPainter old) => old.t != t;
+}
+
+class _MemoryFramePainter extends CustomPainter {
+  final Color color;
+  _MemoryFramePainter(this.color);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..isAntiAlias = false;
+    for (final x in [6.0, size.width - 16]) {
+      for (final y in [6.0, size.height - 16]) {
+        canvas.drawRect(Rect.fromLTWH(x, y, 10, 3), p);
+        canvas.drawRect(Rect.fromLTWH(x, y, 3, 10), p);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MemoryFramePainter old) => old.color != color;
 }

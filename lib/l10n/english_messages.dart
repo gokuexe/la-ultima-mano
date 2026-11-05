@@ -1,5 +1,45 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
 const englishMessages = <String, String>{
+  "UN USO POR TURNO": "ONCE PER TURN",
+  "Sin destellos de pantalla, sacudidas, escenas animadas ni escritura progresiva. Los tiempos de reacción no cambian.":
+      "No screen flashes, shaking, animated scenes or typewriter text. Reaction times do not change.",
+  "En esta mesa ganás Pulso al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo en +1 o −1. Si comenzás con mano llena, podés cambiar una carta antes de actuar.":
+      "At this table, gain Pulse at the end of your turn. With 3 charges, Anchor adjusts a memory by +1 or −1. When starting with a full hand, you may exchange one card before acting.",
+  "EDICIÓN PULSO": "PULSE EDITION",
+  "REGLAS ORIGINALES": "ORIGINAL RULES",
+  "Sumá 1 a un recuerdo tuyo y restá 1 al otro.":
+      "Add 1 to one of your memories and subtract 1 from the other.",
+  "Ganá 2 lucidez. Al cerrar el turno sumás 0–5 al azar a tu roja. Un uso por turno.":
+      "Gain 2 lucidity. At the end of your turn, add a random 0–5 to your red card. Once per turn.",
+  "3 lucidez por turno, mano más chica, reacciones de 5 s y recambio. Límites 0/13 sin quemar.":
+      "3 lucidity per turn, a smaller hand, 5-second reactions and a hand exchange. Clamp to 0/13 without burning.",
+  "Cambiar un recuerdo": "Exchange a memory",
+  "Elegí una carta para cambiar por otra. Un recambio al comenzar con mano llena.":
+      "Choose a card to replace. One exchange when starting with a full hand.",
+  "ANCLAJE · elegí un recuerdo": "ANCHOR · choose a memory",
+  "ANCLAJE · ajustá el recuerdo": "ANCHOR · adjust the memory",
+  "Ganás una carga al cerrar tu turno. Con 3, Anclaje ajusta un recuerdo en +1 o −1.":
+      "Gain a charge at the end of your turn. With 3 charges, Anchor adjusts a memory by +1 or −1.",
+  "CAMBIAR 1 CARTA": "EXCHANGE 1 CARD",
+  "Un latido. El recuerdo vuelve a su sitio.":
+      "One heartbeat. The memory falls back into place.",
+  "Victoria: 30 puntos. Partida terminada: 10. Los marcos no cambian las reglas.":
+      "Win: 30 points. Completed match: 10. Frames do not change the rules.",
+  "Sin marco · libre": "No frame · free",
+  "Marco Ámbar · 40 puntos": "Amber frame · 40 points",
+  "Marco Eco · 100 puntos": "Echo frame · 100 points",
+  "PULSO Y ANCLAJE": "PULSE AND ANCHOR",
+  "En la edición Pulso ganás una carga al cerrar tu turno. Con 3 cargas, Anclaje ajusta un recuerdo propio en +1 o −1. Al comenzar con mano llena podés cambiar una carta antes de actuar.":
+      "In the Pulse edition, gain a charge at the end of your turn. With 3 charges, Anchor adjusts one of your memories by +1 or −1. When starting with a full hand, you may replace one card before acting.",
+  "No se pudo leer la colección.": "Could not read your collection.",
+  "La colección guardada no era válida.": "The saved collection was invalid.",
+  "Los puntos funcionan ahora, pero no pudieron guardarse.":
+      "Your points work now, but could not be saved.",
+  "Anclaje no está disponible.": "Anchor is not available.",
+  "El recambio no está disponible.": "The exchange is not available.",
+  "Versión de reglas no compatible.": "Unsupported rules version.",
+  "Esta sala usa la edición Pulso. Actualizá el juego.":
+      "This room uses the Pulse edition. Update the game.",
   "JUGAR RECUERDO": "PLAY MEMORY",
   "La puerta no responde. Necesitás un 6 y un 7, en cualquier orden.":
       "The door does not respond. You need a 6 and a 7, in either order.",

@@ -21,6 +21,12 @@ class Sfx {
     'lose',
     'turn',
     'tick',
+    'memory',
+    'risk',
+    'reaction',
+    'pulse_ready',
+    'anchor',
+    'exchange',
   ];
 
   final Map<String, AudioPlayer> _players = {};

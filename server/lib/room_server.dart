@@ -142,6 +142,10 @@ class RoomServer {
         if (name.isEmpty || name.length > 20 || name.runes.any((c) => c < 32)) {
           throw const FormatException('Elegí un nombre de 1 a 20 caracteres.');
         }
+        final edition = message['rulesEdition'] ?? 1;
+        if (edition is! int || edition < 1 || edition > 2) {
+          throw const FormatException('Versión de reglas no compatible.');
+        }
         _Room room;
         if (action == 'create') {
           if (_rooms.length >= 100) {
@@ -157,7 +161,11 @@ class RoomServer {
           if (mode < 0 || mode >= GameMode.values.length) {
             throw const FormatException('Modo inválido.');
           }
-          room = _Room(code, GameRules(GameMode.values[mode]));
+          room = _Room(
+              code,
+              edition == 2
+                  ? GameRules.balanced(GameMode.values[mode])
+                  : GameRules(GameMode.values[mode]));
           _rooms[code] = room;
         } else if (action == 'join') {
           final code = (message['code'] as String? ?? '').trim().toUpperCase();
@@ -166,6 +174,10 @@ class RoomServer {
               existing.game != null ||
               existing.peers.length >= 4) {
             throw const FormatException('Sala no disponible.');
+          }
+          if (edition < existing.rules.edition) {
+            throw const FormatException(
+                'Esta sala usa la edición Pulso. Actualizá el juego.');
           }
           room = existing;
         } else {
@@ -256,12 +268,10 @@ class RoomServer {
       // Validate every field before changing authoritative state.
       if (action == 'play') {
         final key = message['card'];
-        final card = kCards[key];
+        final card = game.cards[key];
         if (card == null ||
             !actor.hand.contains(key) ||
-            card.isReaction ||
-            actor.frozen ||
-            (actor.free > 0 ? 0 : card.cost) > actor.mana) {
+            !game.canPlayCard(actor, card)) {
           throw const FormatException('No podés jugar esa carta.');
         }
         final targets = message['targets'] as Map<String, dynamic>? ?? {};
@@ -296,6 +306,23 @@ class RoomServer {
           room.commandPending = false;
           _broadcast(room);
         }
+      } else if (action == 'pulse') {
+        final color = message['color'];
+        final delta = message['delta'];
+        if (color is! int ||
+            color < 0 ||
+            color > 1 ||
+            delta is! int ||
+            !game.usePulse(peer.seat, CardColor.values[color], delta)) {
+          throw const FormatException('Anclaje no está disponible.');
+        }
+        _broadcast(room);
+      } else if (action == 'exchange') {
+        final index = message['index'];
+        if (index is! int || !game.exchangeCard(peer.seat, index)) {
+          throw const FormatException('El recambio no está disponible.');
+        }
+        _broadcast(room);
       } else if (action == 'end') {
         room.commandPending = true;
         try {
@@ -333,6 +360,7 @@ class RoomServer {
       for (final peer in room.peers.values) {
         peer.send({
           'type': 'lobby',
+          'rulesEdition': room.rules.edition,
           'code': room.code,
           'seat': peer.seat,
           'mode': room.rules.mode.index,
@@ -355,6 +383,7 @@ class RoomServer {
       final choice = game.choice;
       peer.send({
         'type': 'state',
+        'rulesEdition': game.rules.edition,
         'mode': game.rules.mode.index,
         'round': room.round,
         'rematchVotes': room.rematchVotes.toList(),
@@ -376,6 +405,10 @@ class RoomServer {
                   'mana': p.mana,
                   'free': p.free,
                   'frozen': p.frozen,
+                  'pulse': p.pulse,
+                  'insomniaUsed': p.insomniaUsed,
+                  'attemptedEscape': p.attemptedEscape,
+                  'exchangeAvailable': p.id == peer.seat && p.exchangeAvailable,
                   'red': game.seesCard(p.id, CardColor.red, viewerId: peer.seat)
                       ? p.red
                       : null,

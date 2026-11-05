@@ -188,6 +188,7 @@ class _OptionButton extends StatelessWidget {
 /// la misma pantalla va sin confeti.
 class EndOverlay extends StatefulWidget {
   final String winner;
+  final int pointsEarned;
   final bool youWon;
   final VoidCallback onAgain;
   final String againLabel;
@@ -197,6 +198,7 @@ class EndOverlay extends StatefulWidget {
   const EndOverlay({
     super.key,
     required this.winner,
+    this.pointsEarned = 0,
     required this.youWon,
     required this.onAgain,
     this.againLabel = 'Volver a despertar',
@@ -233,7 +235,7 @@ class _EndOverlayState extends State<EndOverlay>
                 child: AnimatedBuilder(
                   animation: _c,
                   builder: (context, _) =>
-                      CustomPaint(painter: _ConfettiPainter(_c.value)),
+                      CustomPaint(painter: _DoorRevealPainter(_c.value)),
                 ),
               ),
             Center(
@@ -264,6 +266,12 @@ class _EndOverlayState extends State<EndOverlay>
                           child: GameText(widget.status!,
                               textAlign: TextAlign.center, style: SS.sub),
                         ),
+                      if (widget.pointsEarned > 0)
+                        Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: GameText(
+                                '+${widget.pointsEarned} puntos de recuerdo',
+                                style: SS.body)),
                       const SizedBox(height: 26),
                       GestureDetector(
                         onTap: widget.onAgain,
@@ -299,44 +307,31 @@ class _EndOverlayState extends State<EndOverlay>
   }
 }
 
-class _ConfettiPainter extends CustomPainter {
+/// A quiet door opening behind the result, rather than a celebration over the text.
+class _DoorRevealPainter extends CustomPainter {
   final double t;
-  _ConfettiPainter(this.t);
-
-  static const _palette = [SS.mute, SS.mana, SS.ink];
-
+  _DoorRevealPainter(this.t);
   @override
   void paint(Canvas canvas, Size size) {
-    final rnd = math.Random(11);
-    final paint = Paint();
-    for (var i = 0; i < 70; i++) {
-      final x0 = rnd.nextDouble() * size.width;
-      final delay = rnd.nextDouble() * 0.3;
-      final speed = 0.7 + rnd.nextDouble() * 0.6;
-      final local = ((t - delay) * speed).clamp(0.0, 1.0);
-      if (local <= 0) continue;
-      final y = -30 + local * (size.height + 60);
-      final x = x0 + math.sin(local * 7 + i) * 26;
-      final w = 4.0 + rnd.nextDouble() * 5;
-      final h = w * (1.4 + rnd.nextDouble());
-      paint.color = _palette[i % _palette.length]
-          .withValues(alpha: (1 - local * 0.55).clamp(0.0, 1.0));
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(local * 9 + i);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset.zero, width: w, height: h),
-          Radius.zero,
-        ),
-        paint,
-      );
-      canvas.restore();
-    }
+    final w = math.min(size.width * .64, 360.0);
+    final h = math.min(size.height * .68, 560.0);
+    final x = (size.width - w) / 2;
+    final y = (size.height - h) / 2;
+    final p = Paint()..isAntiAlias = false;
+    p.color = SS.line.withValues(alpha: .35);
+    canvas.drawRect(Rect.fromLTWH(x - 8, y - 8, w + 16, h + 16), p);
+    p.color = SS.mana.withValues(alpha: .12 * t);
+    canvas.drawRect(Rect.fromLTWH(x, y, w, h), p);
+    final open = Curves.easeInOut.transform(t.clamp(0.0, 1.0));
+    p.color = SS.table.withValues(alpha: .96);
+    canvas.drawRect(Rect.fromLTWH(x, y, w * (1 - .72 * open), h), p);
+    p.color = SS.mana.withValues(alpha: .3);
+    canvas.drawRect(
+        Rect.fromLTWH(x + w * (1 - .72 * open) - 14, y + h * .52, 4, 8), p);
   }
 
   @override
-  bool shouldRepaint(covariant _ConfettiPainter old) => old.t != t;
+  bool shouldRepaint(_DoorRevealPainter old) => old.t != t;
 }
 
 /// Destello de pantalla completa cuando alguien canta. Es el momento más

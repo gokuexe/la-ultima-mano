@@ -33,6 +33,30 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## Edición Pulso (0.2.0, prueba)
+
+Clásico e historia usan el catálogo revisado: Parálisis cuesta 3 de lucidez,
+El reflejo sube en 1 un recuerdo propio y baja el otro en 1, e Insomnio solo
+se usa una vez por turno. Los bots conservan lo que han visto con La mirilla
+hasta que ese recuerdo cambia y evalúan combinaciones de dos cartas.
+
+Al cerrar tu turno ganás una carga de Pulso, hasta 3. Anclaje consume las tres
+para ajustar un recuerdo propio en +1 o −1, sin gastar lucidez. No se puede
+activar congelado o después de Parálisis. Al comenzar con mano llena podés
+cambiar una carta antes de actuar, una vez por turno. Rápido tiene 3 de lucidez;
+Farol permite un solo intento de salida por turno. La revancha rota el inicio.
+
+Cada partida completada da 30 puntos por ganar o 10 por perder. Los marcos
+Ámbar y Eco se desbloquean con 40 y 100 puntos; son cosméticos y no alteran
+las cartas. El progreso se guarda localmente. Hay nuevos sonidos originales,
+retratos que parpadean, respuesta al pulsar cartas y una puerta al ganar.
+Las opciones de volumen y movimiento reducido siguen disponibles.
+
+El protocolo distingue ediciones: clientes antiguos mantienen las reglas
+originales; las salas Pulso requieren clientes compatibles. La actualización
+del servidor público se realiza aparte de estos paquetes de prueba. No se
+sustituye el ZIP ni se modifica la revisión pendiente de GameMonetize.
+
 ## Reglas
 
 Jugás contra tres rivales sin conexión. Las cartas modifican dos recuerdos
@@ -296,3 +320,33 @@ Comprueban que terminar turno sea pulsable antes de desplazar, y revisan las
 ```bash
 flutter test tool/render_mobile_preview.dart --concurrency=1 --dart-define=MOBILE_PREVIEW_OUTPUT=/ruta/absoluta/capturas
 ```
+
+### Diagnóstico de balance reproducible
+
+`tool/balance_audit.dart` ejecuta el motor real y su política actual de bots con
+semillas de RNG fijas y temporizadores virtuales. No abre una ventana ni usa un
+emulador. Requiere haber ejecutado `flutter pub get`:
+
+```bash
+dart run tool/balance_audit.dart 1000 /ruta/absoluta/balance-audit.json
+```
+
+Ejecuta 1.000 partidas por escenario: Clásico, Rápido y Farol originales,
+Clásico y Rápido de la edición Pulso, más tres
+experimentos aislados: Rápido con 3 de lucidez, Rápido con 3 de lucidez y
+recambio aleatorio al comenzar con mano llena, y Clásico con ese recambio. El límite es de 400 turnos globales por partida.
+Los casos que llegan al límite se informan aparte: no se cuentan como victorias
+ni se incluyen en la duración media/mediana de las partidas completadas.
+La duración usa turnos, no segundos reales.
+
+Las frecuencias de uso reflejan la heurística de los bots; no son una medida
+directa de fuerza de las cartas ni de victorias de jugadores humanos. Los
+experimentos con recambio aleatorio no están habilitados en la app ni en el servidor;
+la edición Pulso usa el recambio elegido y validado por el motor. También enumera
+estados para comprobar la simetría de El reflejo y el alcance numérico de La
+otra versión, y reproduce intentos repetidos de salida en Farol, acumulación
+de Insomnio e información de La mirilla para bots.
+
+El parámetro opcional `random` de GameEngine permite repetir estas pruebas;
+al omitirlo se conserva la generación aleatoria habitual. El chequeo no cambia
+el catálogo, los costes ni las reglas de ninguna versión publicada.

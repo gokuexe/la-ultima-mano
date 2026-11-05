@@ -9,6 +9,9 @@ import 'package:la_ultima_mano/main.dart';
 import 'package:la_ultima_mano/play_preferences.dart';
 import 'package:la_ultima_mano/theme.dart';
 import 'package:la_ultima_mano/engine.dart';
+import 'package:la_ultima_mano/game_config.dart';
+import 'package:la_ultima_mano/collection_progress.dart';
+import 'package:la_ultima_mano/ui/options_screen.dart';
 import 'package:la_ultima_mano/ui/game_screen.dart';
 import 'package:la_ultima_mano/ui/pieces.dart';
 
@@ -57,18 +60,22 @@ void main() {
     await tester.pumpWidget(
         RepaintBoundary(key: boundary, child: const LaUltimaManoApp()));
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Android-menu-legible');
-    final game = GameEngine(humanPlayerIds: const {0, 1, 2, 3});
+    await save('Pulso-menu');
+    final game = GameEngine(
+        rules: const GameRules.balanced(), humanPlayerIds: const {0, 1, 2, 3});
+    game.me.pulse = 3;
+    game.me.exchangeAvailable = true;
     game.me.red = 5;
     game.me.blue = 7;
     game.me.hand
       ..clear()
-      ..addAll(['sobrecarga', 'intercambio', 'mas1']);
+      ..addAll(
+          ['sobrecarga', 'intercambio', 'mas1', 'menos1', 'volteo', 'mirar']);
     unawaited(Navigator.of(tester.element(find.byType(TitleScreen))).push(
         MaterialPageRoute<void>(builder: (_) => GameScreen(session: game))));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Android-tablero-legible');
+    await save('Pulso-tablero');
     final outer = find
         .descendant(
             of: find.byKey(const ValueKey('table-scroll')),
@@ -76,7 +83,15 @@ void main() {
         .first;
     await tester.scrollUntilVisible(find.byType(HandCard).first, 180,
         scrollable: outer);
-    await save('Android-cartas-legibles');
+    await save('Pulso-cartas');
+    final nav = Navigator.of(tester.element(find.byType(GameScreen)));
+    CollectionProgress.instance.points = 100;
+    await CollectionProgress.instance.selectFrame('echo');
+    unawaited(nav
+        .push(MaterialPageRoute<void>(builder: (_) => const OptionsScreen())));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await save('Pulso-coleccion');
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

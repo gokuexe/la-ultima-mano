@@ -19,6 +19,8 @@ import 'number_card.dart';
 import 'overlays.dart';
 import 'pieces.dart';
 import 'pile.dart';
+import 'pulse_strip.dart';
+import '../collection_progress.dart';
 
 class GameScreen extends StatefulWidget {
   final GameRules rules;
@@ -27,7 +29,7 @@ class GameScreen extends StatefulWidget {
 
   const GameScreen(
       {super.key,
-      this.rules = const GameRules(),
+      this.rules = const GameRules.balanced(),
       this.session,
       this.chapterMemory});
 
@@ -41,6 +43,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   final List<PlayedEntry> _pile = [];
   int _seq = 0;
+  bool _rewarded = false;
+  int _earnedPoints = 0;
   final DialogueDirector _dialogue = DialogueDirector();
   late DialogueLine _line = _dialogue.beginRound(1);
   final ScrollController _handScroll = ScrollController();
@@ -61,7 +65,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (engine is! RemoteGameEngine) PortalAds.instance.attach(engine);
     engine.onFx = _handleFx;
     engine.addListener(_onEngine);
+    CollectionProgress.instance.addListener(_collectionChanged);
     Sfx.i.init();
+  }
+
+  void _collectionChanged() {
+    if (mounted) setState(() {});
   }
 
   int _round = 1;
@@ -70,10 +79,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         engine is RemoteGameEngine ? engine as RemoteGameEngine : null;
     if (remote != null && remote.round != _round) {
       _round = remote.round;
+      _rewarded = false;
+      _earnedPoints = 0;
       _pile.clear();
       _seq = 0;
       _line = _dialogue.beginRound(_round);
       _singFlash.reset();
+    }
+    if (engine.winner != null && !_rewarded) {
+      _rewarded = true;
+      final won = engine.winner == engine.me.name;
+      _earnedPoints = won ? 30 : 10;
+      CollectionProgress.instance.awardMatch(won: won);
     }
     if (mounted) setState(() {});
   }
@@ -93,7 +110,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             if (_pile.length > 12) _pile.removeAt(0);
           });
         }
-        Sfx.i.play('play');
+        final family = id == null ? null : engine.cards[id]?.family;
+        Sfx.i.play(
+            family == CardFamily.riesgo
+                ? 'risk'
+                : family == CardFamily.reaccion
+                    ? 'reaction'
+                    : 'memory',
+            volume: .6);
         Sfx.i.tap();
         break;
       case FxKind.draw:
@@ -111,7 +135,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (_pile.isNotEmpty && fx.cardId != 'desmentir') {
           setState(() => _pile.last.blocked = true);
         }
-        Sfx.i.play('block');
+        Sfx.i.play('reaction', volume: .65);
         Sfx.i.thump();
         break;
       case FxKind.sing:
@@ -133,6 +157,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case FxKind.lose:
         Sfx.i.play('lose');
         break;
+      case FxKind.pulse:
+        Sfx.i.play('anchor', volume: .6);
+        setState(() => _line = const DialogueLine(
+            'La habitación', 'Un latido. El recuerdo vuelve a su sitio.'));
+        if (fx.playerId == 0) Sfx.i.tap();
+        break;
+      case FxKind.charge:
+        if (fx.playerId == 0 && engine.me.pulse == 3) {
+          Sfx.i.play('pulse_ready', volume: .55);
+        }
+        break;
+      case FxKind.exchange:
+        Sfx.i.play('exchange', volume: .5);
+        break;
       case FxKind.turn:
         if (fx.playerId == 0) {
           Sfx.i.play('turn', volume: 0.5);
@@ -146,6 +184,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void dispose() {
     PortalAds.instance.detach(engine);
     engine.removeListener(_onEngine);
+    CollectionProgress.instance.removeListener(_collectionChanged);
     engine.onFx = null;
     engine.dispose();
     _singFlash.dispose();
@@ -171,6 +210,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _pile.clear();
       _seq = 0;
+      _rewarded = false;
+      _earnedPoints = 0;
       _line = _dialogue.beginRound(1);
     });
     engine.newGame();
@@ -199,6 +240,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               if (engine.winner != null)
                 EndOverlay(
                   winner: engine.winner!,
+                  pointsEarned: _earnedPoints,
                   youWon: engine.winner == engine.me.name,
                   onAgain: _restart,
                   againLabel: widget.chapterMemory != null
@@ -241,6 +283,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   _myCards(me),
                   const SizedBox(height: 12),
                   _status(me),
+                  if (engine.rules.isBalanced) ...[
+                    const SizedBox(height: 4),
+                    PulseStrip(engine: engine),
+                  ],
                   const SizedBox(height: 12),
                   _hand(me, myTurn),
                   const SizedBox(height: 12),
@@ -306,6 +352,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               GameText(
                   'Modo ${engine.rules.label}${widget.chapterMemory == null ? '' : ' · Capítulo 01'}',
                   style: SS.sub),
+              GameText(
+                  engine.rules.isBalanced
+                      ? 'EDICIÓN PULSO'
+                      : 'REGLAS ORIGINALES',
+                  style: SS.sub),
             ],
           ),
         ),
@@ -317,8 +368,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         IconButton(
           tooltip: context.tr('Ajustes y guía'),
           icon: const Icon(Icons.tune, color: SS.mute, size: 20),
-          onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const OptionsScreen())),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => OptionsScreen(cards: engine.cards))),
         ),
         IconButton(
           onPressed: () =>
@@ -436,14 +487,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     itemCount: me.hand.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
-                      final card = kCards[me.hand[i]]!;
-                      final cost = me.free > 0 ? 0 : card.cost;
-                      final enabled = myTurn &&
-                          !me.frozen &&
-                          !card.isReaction &&
-                          cost <= me.mana;
+                      final card = engine.cards[me.hand[i]]!;
+                      final enabled = myTurn && engine.canPlayCard(me, card);
                       return HandCard(
                         card: card,
+                        effectiveCost: me.free > 0 ? 0 : card.cost,
+                        disabledReason: engine.rules.isBalanced &&
+                                card.id == 'sobrecarga' &&
+                                me.insomniaUsed
+                            ? 'UN USO POR TURNO'
+                            : null,
                         enabled: enabled,
                         onTap: () => engine.humanPlay(i),
                       );

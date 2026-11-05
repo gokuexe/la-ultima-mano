@@ -29,6 +29,17 @@ abstract final class Catalog {
 
   static String en(String source) => translate(source, 'en');
   static final _rules = <(RegExp, String Function(RegExpMatch))>[
+    (RegExp(r'^ANCLAJE ([0-3])/3$'), (m) => 'ANCHOR ${m[1]}/3'),
+    (RegExp(r'^Colección: (\d+) puntos$'), (m) => 'Collection: ${m[1]} points'),
+    (RegExp(r'^\+(\d+) puntos de recuerdo$'), (m) => '+${m[1]} memory points'),
+    (
+      RegExp(r'^(.+) cambia un recuerdo de su mano\.$'),
+      (m) => '${m[1]} exchanges one memory card.'
+    ),
+    (
+      RegExp(r'^(.+) usa Anclaje: (.+) en su (roja|azul)\.$'),
+      (m) => '${m[1]} uses Anchor: ${m[2]} on their ${en(m[3]!)} card.'
+    ),
     (
       RegExp(r'^Lucidez disponible: (\d+)$'),
       (m) => 'Available lucidity: ${m[1]}'

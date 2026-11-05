@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
@@ -52,23 +53,65 @@ class _SigilPainter extends CustomPainter {
       old.seed != seed || old.color != color;
 }
 
-class PixelPortrait extends StatelessWidget {
+class PixelPortrait extends StatefulWidget {
   final int character;
   final bool active;
   const PixelPortrait(
       {super.key, required this.character, this.active = false});
   @override
-  Widget build(BuildContext context) => SizedBox(
+  State<PixelPortrait> createState() => _PixelPortraitState();
+}
+
+class _PixelPortraitState extends State<PixelPortrait>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _blink = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 150));
+  Timer? _timer;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _timer?.cancel();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _blink.stop();
+      _blink.value = 0;
+      return;
+    }
+    _timer = Timer.periodic(
+        Duration(milliseconds: 4200 + (widget.character % 3) * 650), (_) async {
+      if (!mounted || !TickerMode.valuesOf(context).enabled) return;
+      await _blink.forward();
+      if (mounted) _blink.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
+        transform: Matrix4.translationValues(0, widget.active ? -1 : 0, 0),
         width: 36,
         height: 36,
-        child: CustomPaint(painter: _PortraitPainter(character, active)),
+        child: AnimatedBuilder(
+            animation: _blink,
+            builder: (_, __) => CustomPaint(
+                painter: _PortraitPainter(
+                    widget.character, widget.active, _blink.value))),
       );
 }
 
 class _PortraitPainter extends CustomPainter {
   final int character;
   final bool active;
-  _PortraitPainter(this.character, this.active);
+  final double blink;
+  _PortraitPainter(this.character, this.active, this.blink);
   @override
   void paint(Canvas canvas, Size size) {
     final u = size.width / 12;
@@ -83,8 +126,13 @@ class _PortraitPainter extends CustomPainter {
     rect(3, 1, 6, 2, robe);
     rect(2, 3, 8, 7, robe);
     rect(3, 4, 6, 5, const Color(0xFF171419));
-    rect(4, 5, 1, 1, active ? SS.mana : SS.ink);
-    rect(7, 5, 1, 1, active ? SS.mana : SS.ink);
+    if (blink < .65) {
+      rect(4, 5, 1, 1, active ? SS.mana : SS.ink);
+      rect(7, 5, 1, 1, active ? SS.mana : SS.ink);
+    } else {
+      rect(3, 6, 2, 1, SS.mute);
+      rect(7, 6, 2, 1, SS.mute);
+    }
     rect(5, 8, 2, 1, SS.mute);
     rect(1, 10, 10, 2, robe);
     if (character % 3 == 1) rect(5, 3, 2, 6, SS.mute);
@@ -93,7 +141,7 @@ class _PortraitPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PortraitPainter old) =>
-      old.character != character || old.active != active;
+      old.character != character || old.active != active || old.blink != blink;
 }
 
 class PixelDust extends CustomPainter {
