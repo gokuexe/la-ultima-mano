@@ -31,6 +31,7 @@ class Sfx {
 
   final Map<String, AudioPlayer> _players = {};
   bool _ready = false;
+  Future<void>? _initializing;
   bool muted = false;
   double _masterVolume = 1;
   bool _adMuted = false;
@@ -57,11 +58,17 @@ class Sfx {
     }
   }
 
-  Future<void> init() async {
-    if (_ready) return;
+  Future<void> init() {
+    if (_ready) return Future<void>.value();
+    return _initializing ??= _load().whenComplete(() => _initializing = null);
+  }
+
+  Future<void> _load() async {
     for (final n in names) {
+      if (_players.containsKey(n)) continue;
+      AudioPlayer? player;
       try {
-        final p = AudioPlayer(playerId: 'ss_$n');
+        final p = player = AudioPlayer(playerId: 'ss_$n');
         await p.setReleaseMode(ReleaseMode.stop);
         await p.setPlayerMode(PlayerMode.lowLatency);
         await p.setSource(AssetSource('audio/$n.wav'));
@@ -69,19 +76,32 @@ class Sfx {
         _players[n] = p;
       } catch (e) {
         debugPrint('No se pudo cargar el sonido $n: $e');
+        try {
+          await player?.dispose();
+        } catch (_) {
+          // A failed native player may also reject disposal.
+        }
       }
     }
-    _ready = true;
+    // Failed assets can be retried instead of permanently silencing the session.
+    _ready = _players.length == names.length;
   }
 
   Future<void> play(String name, {double volume = 0.85}) async {
-    if (muted || adMuted) return;
+    if (muted || adMuted || effectiveVolume == 0 || !names.contains(name)) {
+      return;
+    }
+    if (!_ready) await init();
+    if (muted || adMuted || effectiveVolume == 0) return;
     final p = _players[name];
     if (p == null) return;
     try {
       _lastVolumes[name] = volume;
       await p.setVolume((volume * effectiveVolume).clamp(0.0, 1.0));
-      await p.seek(Duration.zero);
+      // Android SoundPool does not emit onSeekComplete. AudioPlayer.seek()
+      // waits for that event, so awaiting seek(0) prevents resume from running.
+      // stop resets the position and retains the preloaded source (ReleaseMode.stop).
+      await p.stop();
       await p.resume();
     } catch (e) {
       debugPrint('No se pudo reproducir $name: $e');
@@ -104,6 +124,7 @@ class Sfx {
   }
 
   Future<void> disposeAll() async {
+    await _initializing;
     for (final p in _players.values) {
       await p.dispose();
     }

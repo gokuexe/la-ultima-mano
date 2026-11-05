@@ -33,6 +33,16 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## Audio (0.2.1)
+
+Corrige los efectos silenciosos en Android: SoundPool no emite la confirmación
+que espera `seek(0)`, por lo que nunca se ejecutaba la reproducción. Los efectos
+ahora reinician con `stop` y `resume`, conservando el sonido precargado. La carga
+concurrente se comparte, una reproducción temprana espera la carga y los archivos
+que fallen pueden reintentarse. El cambio se aplica a Android, Linux y web;
+el silencio por volumen cero o publicidad sigue respetándose. La corrección
+no se publica automáticamente en GameMonetize.
+
 ## Edición Pulso (0.2.0, prueba)
 
 Clásico e historia usan el catálogo revisado: Parálisis cuesta 3 de lucidez,
