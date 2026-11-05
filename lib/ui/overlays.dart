@@ -1,5 +1,6 @@
 import '../l10n/game_text.dart';
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -32,6 +33,7 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
     duration: const Duration(milliseconds: 220),
   )..forward();
   int _lastTick = -1;
+  bool _visuallyPaused = false;
 
   @override
   void initState() {
@@ -41,10 +43,24 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
       _timer = AnimationController(
         vsync: this,
         duration: Duration(milliseconds: (secs * 1000).round()),
-      )
-        ..addListener(_onTick)
-        ..forward();
+      )..addListener(_onTick);
+      _visuallyPaused = widget.request.pausedAt != null;
+      if (!_visuallyPaused) _timer!.forward();
       Sfx.i.thump();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ChoiceOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final paused = widget.request.pausedAt != null;
+    if (_timer != null && paused != _visuallyPaused) {
+      _visuallyPaused = paused;
+      if (paused) {
+        _timer!.stop();
+      } else {
+        _timer!.forward(from: 1 - widget.request.remaining);
+      }
     }
   }
 
@@ -132,6 +148,13 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
                         },
                       ),
                     ),
+                  if (r.seconds == null &&
+                      !r.options.any((o) => o.value == null))
+                    TextButton(
+                      key: const ValueKey('cancel-card-choice'),
+                      onPressed: () => widget.onPick(null),
+                      child: const GameText('CANCELAR'),
+                    ),
                 ],
               )),
             ),
@@ -184,8 +207,7 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
-/// Pantalla final con papelitos. Solo aparece cuando ganás vos; si gana un bot
-/// la misma pantalla va sin confeti.
+/// El resultado permanece hasta elegir otra partida o volver al inicio.
 class EndOverlay extends StatefulWidget {
   final String winner;
   final int pointsEarned;
@@ -193,6 +215,8 @@ class EndOverlay extends StatefulWidget {
   final VoidCallback onAgain;
   final String againLabel;
   final VoidCallback? onExit;
+  final String exitLabel;
+  final bool againEnabled;
   final String? status;
 
   const EndOverlay({
@@ -201,8 +225,10 @@ class EndOverlay extends StatefulWidget {
     this.pointsEarned = 0,
     required this.youWon,
     required this.onAgain,
-    this.againLabel = 'Volver a despertar',
+    this.againLabel = 'JUGAR OTRA PARTIDA',
     this.onExit,
+    this.exitLabel = 'VOLVER AL INICIO',
+    this.againEnabled = true,
     this.status,
   });
 
@@ -212,6 +238,16 @@ class EndOverlay extends StatefulWidget {
 
 class _EndOverlayState extends State<EndOverlay>
     with SingleTickerProviderStateMixin {
+  bool _actionsReady = false;
+  Timer? _enableActions;
+  @override
+  void initState() {
+    super.initState();
+    _enableActions = Timer(const Duration(milliseconds: 650), () {
+      if (mounted) setState(() => _actionsReady = true);
+    });
+  }
+
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 2600),
@@ -219,6 +255,7 @@ class _EndOverlayState extends State<EndOverlay>
 
   @override
   void dispose() {
+    _enableActions?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -273,29 +310,37 @@ class _EndOverlayState extends State<EndOverlay>
                                 '+${widget.pointsEarned} puntos de recuerdo',
                                 style: SS.body)),
                       const SizedBox(height: 26),
-                      GestureDetector(
-                        onTap: widget.onAgain,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 34, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: SS.mana,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: GameText(
-                            widget.againLabel,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2A1F05),
-                            ),
-                          ),
+                      const GameText('¿Qué querés hacer ahora?',
+                          textAlign: TextAlign.center, style: SS.body),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        key: const ValueKey('result-play-again'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: SS.mana,
+                          foregroundColor: const Color(0xFF2A1F05),
+                          minimumSize: const Size(48, 48),
+                          shape: const RoundedRectangleBorder(),
                         ),
+                        onPressed: _actionsReady && widget.againEnabled
+                            ? widget.onAgain
+                            : null,
+                        child: GameText(widget.againLabel,
+                            style: _actionsReady && widget.againEnabled
+                                ? const TextStyle(
+                                    color: Color(0xFF2A1F05),
+                                    fontWeight: FontWeight.w800)
+                                : null),
                       ),
                       if (widget.onExit != null)
-                        TextButton(
-                          onPressed: widget.onExit,
-                          child: const GameText('SALIR DE LA SALA'),
+                        OutlinedButton(
+                          key: const ValueKey('result-home'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: SS.ink,
+                            minimumSize: const Size(48, 48),
+                            shape: const RoundedRectangleBorder(),
+                          ),
+                          onPressed: _actionsReady ? widget.onExit : null,
+                          child: GameText(widget.exitLabel),
                         ),
                     ],
                   )),

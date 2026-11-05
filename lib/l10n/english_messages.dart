@@ -1,5 +1,17 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
 const englishMessages = <String, String>{
+  'CANCELAR': 'CANCEL',
+  'JUGAR CARTA': 'PLAY CARD',
+  '¿Salir de la partida?': 'Leave this match?',
+  'Saldrás de la sala. La partida online sigue mientras decidís.':
+      'You will leave the room. The online match continues while you decide.',
+  'La partida en curso no se guarda. ¿Querés salir?':
+      'This match will not be saved. Do you want to leave?',
+  'SEGUIR JUGANDO': 'KEEP PLAYING',
+  'SALIR DE LA PARTIDA': 'LEAVE MATCH',
+  '¿Qué querés hacer ahora?': 'What would you like to do now?',
+  'JUGAR OTRA PARTIDA': 'PLAY ANOTHER MATCH',
+  'VOLVER AL INICIO': 'BACK TO MENU',
   "UN USO POR TURNO": "ONCE PER TURN",
   "Sin destellos de pantalla, sacudidas, escenas animadas ni escritura progresiva. Los tiempos de reacción no cambian.":
       "No screen flashes, shaking, animated scenes or typewriter text. Reaction times do not change.",

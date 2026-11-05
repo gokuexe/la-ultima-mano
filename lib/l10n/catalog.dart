@@ -17,6 +17,12 @@ abstract final class Catalog {
       final match = rule.$1.firstMatch(source);
       if (match != null) return rule.$2(match);
     }
+    if (source.contains('\n')) {
+      return source
+          .split('\n')
+          .map((line) => translate(line, language))
+          .join('\n');
+    }
     final separator = source.lastIndexOf(' · ');
     if (separator >= 0) {
       final tail = source.substring(separator + 3);
@@ -29,6 +35,18 @@ abstract final class Catalog {
 
   static String en(String source) => translate(source, 'en');
   static final _rules = <(RegExp, String Function(RegExpMatch))>[
+    (RegExp(r'^Confirmar: (.+)$'), (m) => 'Confirm: ${en(m[1]!)}'),
+    (RegExp(r'^Coste: (\d+) lucidez$'), (m) => 'Cost: ${m[1]} lucidity'),
+    (
+      RegExp(r'^Tu recuerdo: (roja|azul) · (\d+)$'),
+      (m) => 'Your memory: ${en(m[1]!)} · ${m[2]}'
+    ),
+    (RegExp(r'^Rival: (.+)$'), (m) => 'Opponent: ${m[1]}'),
+    (
+      RegExp(r'^Recuerdo rival: (roja|azul)$'),
+      (m) => 'Opponent memory: ${en(m[1]!)}'
+    ),
+    (RegExp(r'^Color: (roja|azul)$'), (m) => 'Color: ${en(m[1]!)}'),
     (RegExp(r'^ANCLAJE ([0-3])/3$'), (m) => 'ANCHOR ${m[1]}/3'),
     (RegExp(r'^Colección: (\d+) puntos$'), (m) => 'Collection: ${m[1]} points'),
     (RegExp(r'^\+(\d+) puntos de recuerdo$'), (m) => '+${m[1]} memory points'),

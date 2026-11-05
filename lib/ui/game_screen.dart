@@ -6,6 +6,7 @@ import '../engine.dart';
 import '../online/online_connection.dart';
 import '../play_preferences.dart';
 import '../chapter.dart';
+import '../story_progress.dart';
 import '../portal/portal_ads.dart';
 import 'options_screen.dart';
 import '../dialogue.dart';
@@ -58,6 +59,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    engine.confirmHumanPlays = true;
     if (widget.chapterMemory != null) {
       _line = DialogueLine(
           'La habitación', ChapterOne.opening(widget.chapterMemory!));
@@ -192,11 +194,83 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  bool _allowPop = false;
+  bool _exitDialogOpen = false;
+  bool _leaving = false;
+
+  Future<void> _leaveTable({bool home = false, bool? result}) async {
+    if (_leaving) return;
+    _leaving = true;
+    if (home &&
+        widget.chapterMemory != null &&
+        engine.winner == engine.me.name) {
+      await StoryProgress.instance.update(chapterComplete: true);
+    }
+    if (!mounted) return;
+    setState(() => _allowPop = true);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (home) {
+      navigator.popUntil((route) => route.isFirst);
+    } else {
+      navigator.pop(result);
+    }
+  }
+
+  Future<void> _requestExit() async {
+    if (_leaving || _exitDialogOpen) return;
+    if (engine.winner != null) {
+      await _leaveTable(home: true);
+      return;
+    }
+    _exitDialogOpen = true;
+    final pauseLocal = engine is! RemoteGameEngine && !engine.paused;
+    if (pauseLocal) engine.setPaused(true);
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const GameText('¿Salir de la partida?'),
+        content: GameText(engine is RemoteGameEngine
+            ? 'Saldrás de la sala. La partida online sigue mientras decidís.'
+            : 'La partida en curso no se guarda. ¿Querés salir?'),
+        actions: [
+          TextButton(
+            key: const ValueKey('stay-in-game'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const GameText('SEGUIR JUGANDO'),
+          ),
+          TextButton(
+            key: const ValueKey('confirm-exit-game'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const GameText('SALIR DE LA PARTIDA'),
+          ),
+        ],
+      ),
+    );
+    _exitDialogOpen = false;
+    if (!mounted) return;
+    if (leave == true) {
+      await _leaveTable();
+    } else if (pauseLocal) {
+      engine.setPaused(false);
+    }
+  }
+
+  void _handleBack(bool didPop, Object? result) {
+    if (didPop || _allowPop || _leaving) return;
+    if (engine.choice != null && engine.choice!.seconds == null) {
+      engine.cancelChoice();
+    } else {
+      _requestExit();
+    }
+  }
+
   bool _restarting = false;
   Future<void> _restart() async {
-    if (_restarting) return;
+    if (_restarting || engine.winner == null) return;
     if (widget.chapterMemory != null) {
-      Navigator.of(context).pop(engine.winner == engine.me.name);
+      await _leaveTable(result: engine.winner == engine.me.name);
       return;
     }
     if (engine is RemoteGameEngine) {
@@ -223,46 +297,50 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final me = engine.me;
     final myTurn = engine.myTurn;
 
-    return Scaffold(
-      body: Container(
-        decoration: SS.tableBg(),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              Positioned.fill(child: _table(me, myTurn)),
-              SingFlash(anim: _singFlash, actor: _singActor),
-              if (engine.choice != null)
-                ChoiceOverlay(
-                  key: ValueKey(engine.choice),
-                  request: engine.choice!,
-                  onPick: engine.answer,
-                ),
-              if (engine.winner != null)
-                EndOverlay(
-                  winner: engine.winner!,
-                  pointsEarned: _earnedPoints,
-                  youWon: engine.winner == engine.me.name,
-                  onAgain: _restart,
-                  againLabel: widget.chapterMemory != null
-                      ? 'LEER DESENLACE'
-                      : engine is RemoteGameEngine
-                          ? (engine as RemoteGameEngine).votedRematch
-                              ? 'Esperando al resto…'
-                              : 'QUIERO REVANCHA'
-                          : 'Volver a despertar',
-                  onExit: widget.session == null
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  status: engine is RemoteGameEngine
-                      ? engine.statusMessage ??
-                          'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
-                      : null,
-                ),
-            ],
+    return PopScope<Object?>(
+        canPop: _allowPop,
+        onPopInvokedWithResult: _handleBack,
+        child: Scaffold(
+          body: Container(
+            decoration: SS.tableBg(),
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  Positioned.fill(child: _table(me, myTurn)),
+                  SingFlash(anim: _singFlash, actor: _singActor),
+                  if (engine.choice != null)
+                    ChoiceOverlay(
+                      key: ValueKey(engine.choice),
+                      request: engine.choice!,
+                      onPick: engine.answer,
+                    ),
+                  if (engine.winner != null)
+                    EndOverlay(
+                      winner: engine.winner!,
+                      pointsEarned: _earnedPoints,
+                      youWon: engine.winner == engine.me.name,
+                      onAgain: _restart,
+                      againLabel: widget.chapterMemory != null
+                          ? 'LEER DESENLACE'
+                          : engine is RemoteGameEngine
+                              ? (engine as RemoteGameEngine).votedRematch
+                                  ? 'Esperando al resto…'
+                                  : 'QUIERO REVANCHA'
+                              : 'JUGAR OTRA PARTIDA',
+                      againEnabled: !_restarting &&
+                          (engine is! RemoteGameEngine ||
+                              !(engine as RemoteGameEngine).votedRematch),
+                      onExit: () => _leaveTable(home: true),
+                      status: engine is RemoteGameEngine
+                          ? engine.statusMessage ??
+                              'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
+                          : null,
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   Widget _table(Player me, bool myTurn) {
@@ -363,7 +441,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         IconButton(
           tooltip: context.tr('Salir de la mesa'),
           icon: const Icon(Icons.exit_to_app, color: SS.mute, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _requestExit,
         ),
         IconButton(
           tooltip: context.tr('Ajustes y guía'),

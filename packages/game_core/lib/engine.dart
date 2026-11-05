@@ -212,6 +212,10 @@ class GameEngine extends GameNotifier {
 
   Player get me => players[0];
   Player get current => players[turn];
+
+  /// The app enables this for human input; bots and protocol commands are unchanged.
+  bool confirmHumanPlays = false;
+
   bool get myTurn => turn == 0 && !busy && winner == null && choice == null;
 
   List<Player> foesOf(int id) => players.where((p) => p.id != id).toList();
@@ -608,16 +612,50 @@ class GameEngine extends GameNotifier {
     _touch();
   }
 
+  Future<bool> confirmPlay(String cardId, Player actor, Targets targets) async {
+    if (!confirmHumanPlays) return true;
+    final card = cards[cardId]!;
+    final details = <String>[
+      card.desc,
+      'Coste: ${actor.free > 0 ? 0 : card.cost} lucidez',
+      if (targets.own != null)
+        'Tu recuerdo: ${colorName(targets.own!)} · ${actor.value(targets.own!)}',
+      if (targets.color != null) 'Color: ${colorName(targets.color!)}',
+      if (targets.foe != null) 'Rival: ${players[targets.foe!].name}',
+      if (targets.foeColor != null)
+        'Recuerdo rival: ${colorName(targets.foeColor!)}',
+    ];
+    final accepted = await ask(
+      title: 'Confirmar: ${card.name}',
+      desc: details.join('\n'),
+      options: const [
+        ChoiceOption('JUGAR CARTA', true),
+        ChoiceOption('CANCELAR', null),
+      ],
+    );
+    return accepted == true;
+  }
+
   Future<bool> humanPlay(int handIndex) async {
     if (!myTurn) return false;
     final p = me;
+    final gameId = _gameId;
     if (handIndex < 0 || handIndex >= p.hand.length) return false;
     final cardId = p.hand[handIndex];
     final card = cards[cardId]!;
-    if (!canPlayCard(p, card)) return false;
+    if (!canPlayCard(p, card)) {
+      return false;
+    }
 
     final q = await collectTargets(cardId, p);
-    if (q == null) return false;
+    if (q == null || !_canAct(0) || gameId != _gameId) return false;
+    if (!await confirmPlay(cardId, p, q)) return false;
+    if (!_canAct(0) ||
+        gameId != _gameId ||
+        !p.hand.contains(cardId) ||
+        !canPlayCard(p, card)) {
+      return false;
+    }
     await playCard(p, cardId, q);
     if (p.endNow) await endTurn();
     return true;

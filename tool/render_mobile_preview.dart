@@ -60,7 +60,7 @@ void main() {
     await tester.pumpWidget(
         RepaintBoundary(key: boundary, child: const LaUltimaManoApp()));
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Pulso-menu');
+    await save('Flujo-menu');
     final game = GameEngine(
         rules: const GameRules.balanced(), humanPlayerIds: const {0, 1, 2, 3});
     game.me.pulse = 3;
@@ -75,7 +75,14 @@ void main() {
         MaterialPageRoute<void>(builder: (_) => GameScreen(session: game))));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Pulso-tablero');
+    await save('Flujo-tablero');
+    final proposal = game.humanPlay(0);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await save('Flujo-confirmar');
+    game.cancelChoice();
+    await proposal;
+    await tester.pump();
     final outer = find
         .descendant(
             of: find.byKey(const ValueKey('table-scroll')),
@@ -83,7 +90,13 @@ void main() {
         .first;
     await tester.scrollUntilVisible(find.byType(HandCard).first, 180,
         scrollable: outer);
-    await save('Pulso-cartas');
+    await save('Flujo-cartas');
+    game.winner = game.me.name;
+    game.notifyListeners();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 300));
+    await save('Flujo-resultado');
     final nav = Navigator.of(tester.element(find.byType(GameScreen)));
     CollectionProgress.instance.points = 100;
     await CollectionProgress.instance.selectFrame('echo');
@@ -91,7 +104,7 @@ void main() {
         .push(MaterialPageRoute<void>(builder: (_) => const OptionsScreen())));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Pulso-coleccion');
+    await save('Flujo-coleccion');
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

@@ -33,6 +33,19 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## Confirmación y navegación (0.2.2)
+
+Elegir una carta abre sus objetivos y una confirmación final antes de gastar
+la carta o la lucidez. Podés cancelar en cualquiera de esos pasos; Atrás también
+cierra la selección. Una jugada ya confirmada y resuelta no se deshace.
+
+Atrás o el botón de salida durante una partida piden confirmación. La mesa
+local se pausa mientras elegís; una partida online continúa para el resto.
+El resultado queda visible hasta elegir jugar otra partida o volver al inicio,
+con una protección breve contra toques accidentales al aparecer. En historia
+se conserva la opción de leer el desenlace y el progreso de la victoria.
+Los cambios se comparten entre Android, Linux y web; GameMonetize no se actualiza.
+
 ## Audio (0.2.1)
 
 Corrige los efectos silenciosos en Android: SoundPool no emite la confirmación

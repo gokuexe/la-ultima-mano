@@ -335,13 +335,21 @@ class RemoteGameEngine extends GameEngine {
   @override
   Future<bool> humanPlay(int handIndex) async {
     if (!myTurn || handIndex < 0 || handIndex >= me.hand.length) return false;
+    final startedRound = round;
     final key = me.hand[handIndex];
     final card = cards[key]!;
     if (!canPlayCard(me, card)) {
       return false;
     }
     final q = await collectTargets(key, me);
-    if (q == null || !myTurn) return false;
+    if (q == null || !myTurn || round != startedRound) return false;
+    if (!await confirmPlay(key, me, q)) return false;
+    if (!myTurn ||
+        round != startedRound ||
+        !me.hand.contains(key) ||
+        !canPlayCard(me, card)) {
+      return false;
+    }
     _send({
       'type': 'play',
       'card': key,

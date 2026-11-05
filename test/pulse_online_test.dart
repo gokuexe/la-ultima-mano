@@ -106,6 +106,57 @@ void main() {
     expect(guest.game!.myTurn, isTrue);
     expect(authority.players.every((p) => p.pulse == 0), isTrue);
   });
+  test(
+      'cancelled confirmation sends no play; confirmed card applies once online',
+      () async {
+    late GameEngine authority;
+    final server = RoomServer(createGame: (rules, humans, names) {
+      authority = GameEngine(
+          rules: rules, humanPlayerIds: const {0, 1, 2, 3}, playerNames: names);
+      for (final p in authority.players) {
+        p.hand.clear();
+      }
+      authority.me.hand.add('mas1');
+      authority.me.red = 5;
+      authority.me.blue = 7;
+      return authority;
+    });
+    await server.start(port: 0);
+    final host = OnlineConnection(), guest = OnlineConnection();
+    addTearDown(() async {
+      host.dispose();
+      guest.dispose();
+      await server.close();
+    });
+    final url = 'ws://127.0.0.1:${server.port}/ws';
+    await host
+        .connect(url, {'type': 'create', 'name': 'Host', 'rulesEdition': 2});
+    await guest.connect(url, {
+      'type': 'join',
+      'name': 'Guest',
+      'code': host.lobby!['code'],
+      'rulesEdition': 2
+    });
+    host.send({'type': 'start'});
+    await waitFor(() => host.game != null && guest.game != null);
+    final game = host.game!..confirmHumanPlays = true;
+    var playing = game.humanPlay(0);
+    game.answer(CardColor.red);
+    await waitFor(() => game.choice?.title.startsWith('Confirmar:') ?? false);
+    expect(authority.me.red, 5);
+    expect(authority.me.mana, 3);
+    game.answer(null);
+    expect(await playing, isFalse);
+    expect(authority.me.hand, ['mas1']);
+    playing = game.humanPlay(0);
+    game.answer(CardColor.red);
+    await waitFor(() => game.choice?.title.startsWith('Confirmar:') ?? false);
+    game.answer(true);
+    expect(await playing, isTrue);
+    await waitFor(() => authority.me.red == 6 && !game.busy);
+    expect(authority.me.mana, 2);
+    expect(authority.me.hand, isEmpty);
+  });
   test('legacy rooms keep their catalog and do not expose new actions',
       () async {
     final server = RoomServer();
