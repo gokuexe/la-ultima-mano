@@ -231,3 +231,68 @@ portadas JPG (512×384, 512×512 y 512×340). La verificación real de SDK y la
 activación se comprueban desde su panel; una compilación aprobada no equivale
 a aprobación editorial. El trabajo del portal no incorpora una licencia
 general nueva al código heredado.
+
+### Android (APK para pruebas)
+
+El proyecto Android usa el identificador `com.gokuexe.la_ultima_mano`, nombre
+«La Última Mano», icono propio y pantalla inicial oscura. Incluye partida local,
+Capítulo 01, español/inglés y salas privadas por WSS. Los ajustes y el progreso
+se guardan en el directorio privado de la app, obtenido desde Android; no pide
+acceso a los archivos del teléfono. Las conexiones sin cifrar no están habilitadas.
+El SDK de anuncios de GameMonetize pertenece a la edición web; esta APK no
+integra un SDK de publicidad Android.
+
+Con Flutter, Java y el SDK Android instalados:
+
+```bash
+flutter pub get
+flutter build apk --release --split-per-abi --target-platform android-arm64 --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+```
+
+La APK ARM64 está en `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`.
+Para mantener bajo el consumo local se compila una arquitectura por vez, con
+dos trabajadores y un heap de Gradle limitado a 2 GiB. Ejecutar las pruebas con
+`flutter test --concurrency=1`; no iniciar un emulador mientras se compila. Esta primera
+compilación optimizada usa firma de desarrollo para instalar y probar. Antes de
+publicarla en Google Play hay que configurar una clave de subida privada y
+preparar un AAB; no subir claves ni `key.properties` al repositorio. Las APK
+creadas en máquinas distintas pueden usar firmas de desarrollo distintas.
+GitHub Actions guarda una APK de prueba en cada ejecución del job Android.
+
+Prueba automatizada en un emulador o teléfono Android de desarrollo:
+
+```bash
+flutter test integration_test/android_smoke_test.dart -d DEVICE_ID
+# Opcional: probar también el servidor público y cerrar ambas conexiones al terminar.
+flutter test integration_test/android_smoke_test.dart -d DEVICE_ID --dart-define=TEST_ONLINE=true --dart-define=ONLINE_SERVER_URL=wss://la-ultima-mano.onrender.com/ws
+```
+
+La prueba de integración está preparada para comprobar el guardado privado,
+el idioma tras volver a cargar los ajustes, el progreso y la apertura de una
+mesa local con lectura ampliada. Requiere un dispositivo Android y se ejecuta
+por separado de la compilación; la preparación del test no implica que se haya
+probado en un teléfono físico.
+La comprobación opcional online crea una sala y conecta dos clientes por TLS.
+
+### Lectura y pantallas pequeñas
+
+La interfaz usa el tamaño real disponible, sin reducir un lienzo fijo de
+480×960 ni imponer un tablero de 1.000 píxeles. Respeta las barras del sistema
+y los recortes de pantalla. Los botones de turno permanecen visibles; el
+contenido adicional se desplaza verticalmente y la mano horizontalmente.
+
+Los textos y números usan Liberation Sans (regular y negrita, SIL OFL incluida)
+con un mínimo de 14 píxeles lógicos; las explicaciones usan 16. El título conserva
+Pixelify como elemento de marca. Las fuentes viajan dentro de cada compilación,
+sin descargarse al abrir el juego. Los números mantienen anchura tabular.
+Las cartas y los diálogos se adaptan al tamaño de lectura; las respuestas y los
+desenlaces permiten desplazar el contenido con letras grandes.
+
+Las pruebas de regresión montan la app completa en 320×568, 360×640, 390×844 y
+412×915, con zonas seguras, ambos idiomas y escala de sistema 1,0 y 1,4.
+Comprueban que terminar turno sea pulsable antes de desplazar, y revisan las
+20 cartas y sus reversos. Para renderizar capturas sin emulador:
+
+```bash
+flutter test tool/render_mobile_preview.dart --concurrency=1 --dart-define=MOBILE_PREVIEW_OUTPUT=/ruta/absoluta/capturas
+```

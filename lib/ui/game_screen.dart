@@ -188,19 +188,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         child: SafeArea(
           child: Stack(
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  child: Center(
-                    child: SizedBox(
-                      width: constraints.maxWidth.clamp(0.0, 1000.0),
-                      height: constraints.maxHeight < 1000
-                          ? 1000
-                          : constraints.maxHeight,
-                      child: _table(me, myTurn),
-                    ),
-                  ),
-                ),
-              ),
+              Positioned.fill(child: _table(me, myTurn)),
               SingFlash(anim: _singFlash, actor: _singActor),
               if (engine.choice != null)
                 ChoiceOverlay(
@@ -236,40 +224,47 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _table(Player me, bool myTurn) {
-    return Padding(
-      // el margen inferior queda generoso a propósito: en
-      // Windows maximizado no hay garantía de que el borde de la
-      // ventana sea clickeable hasta el último píxel
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 26),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _header(),
-          const SizedBox(height: 10),
-          _rivals(),
-          const SizedBox(height: 8),
-          DialogueBox(line: _line),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: 3, child: PlayedPile(entries: _pile)),
-                const SizedBox(width: 8),
-                Expanded(flex: 2, child: LogView(entries: engine.logs)),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            key: const ValueKey('table-scroll'),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(),
+                  const SizedBox(height: 12),
+                  _rivals(),
+                  const SizedBox(height: 12),
+                  _myCards(me),
+                  const SizedBox(height: 12),
+                  _status(me),
+                  const SizedBox(height: 12),
+                  _hand(me, myTurn),
+                  const SizedBox(height: 12),
+                  DialogueBox(line: _line),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                      height: 200,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(flex: 3, child: PlayedPile(entries: _pile)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              flex: 2, child: LogView(entries: engine.logs)),
+                        ],
+                      )),
+                ]),
           ),
-          const SizedBox(height: 10),
-          _myCards(me),
-          const SizedBox(height: 8),
-          _status(me),
-          const SizedBox(height: 8),
-          _hand(me, myTurn),
-          const SizedBox(height: 8),
-          _buttons(me, myTurn),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: _buttons(me, myTurn),
+        ),
+      ],
     );
   }
 
@@ -383,20 +378,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _status(Player me) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
       children: [
-        Row(
-          children: [
-            const GameText('Lucidez ', style: SS.sub),
-            ManaPips(value: me.mana, max: 7),
-            const SizedBox(width: 8),
-            GameText(
-              me.free > 0 ? '${me.mana} · ${me.free} gratis' : '${me.mana}',
-              style: SS.sub,
-            ),
-          ],
-        ),
+        const GameText('Lucidez ', style: SS.sub),
+        ManaPips(value: me.mana, max: 7),
+        GameText(me.free > 0 ? '${me.mana} · ${me.free} gratis' : '${me.mana}',
+            style: SS.sub),
         GameText(
           me.isWin ? 'lo recordás' : 'distancia: ${me.distance}',
           style: SS.sub.copyWith(color: me.isWin ? SS.win : SS.mute),
@@ -425,7 +414,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _hand(Player me, bool myTurn) {
     return SizedBox(
-      height: 326,
+      height: HandCard.heightFor(context) + 20,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -521,7 +510,8 @@ class _Btn extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(vertical: 13),
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: active ? SS.win : SS.surface,
@@ -540,8 +530,9 @@ class _Btn extends StatelessWidget {
           opacity: enabled ? 1 : 0.35,
           child: GameText(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               color: active ? const Color(0xFF0D2419) : SS.ink,
             ),

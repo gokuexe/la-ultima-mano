@@ -1,7 +1,7 @@
 name: la_ultima_mano
 description: La Última Mano - juego de cartas de terror psicológico, recuerdos y paranoia.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -20,6 +20,8 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   la_ultima_mano_server:
     path: server
   flutter_test:
@@ -31,8 +33,15 @@ flutter:
   assets:
     - assets/audio/
     - assets/art/
+    - assets/fonts/LiberationSans-LICENSE.txt
 
   fonts:
     - family: Pixelify
       fonts:
         - asset: assets/fonts/PixelifySans.ttf
+
+    - family: LiberationSans
+      fonts:
+        - asset: assets/fonts/LiberationSans-Regular.ttf
+        - asset: assets/fonts/LiberationSans-Bold.ttf
+          weight: 700

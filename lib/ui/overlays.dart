@@ -88,7 +88,8 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
+              child: SingleChildScrollView(
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (_timer != null) ...[
@@ -132,7 +133,7 @@ class _ChoiceOverlayState extends State<ChoiceOverlay>
                       ),
                     ),
                 ],
-              ),
+              )),
             ),
           ),
         ),
@@ -172,7 +173,7 @@ class _OptionButton extends StatelessWidget {
             option.label,
             translate: !option.playerName,
             style: const TextStyle(
-              fontSize: 13.5,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: SS.ink,
             ),
@@ -236,58 +237,60 @@ class _EndOverlayState extends State<EndOverlay>
                 ),
               ),
             Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GameText(
-                    widget.youWon ? 'LA PUERTA SE ABRE' : 'TE QUEDÁS ACÁ',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: widget.youWon ? SS.win : SS.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GameText(
-                      widget.youWon
-                          ? 'Del otro lado, alguien vuelve a repartir.'
-                          : '${widget.winner} recordó primero. La habitación te reconoce.',
-                      textAlign: TextAlign.center,
-                      style: SS.sub),
-                  if (widget.status != null)
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: GameText(widget.status!,
-                          textAlign: TextAlign.center, style: SS.sub),
-                    ),
-                  const SizedBox(height: 26),
-                  GestureDetector(
-                    onTap: widget.onAgain,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 34, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: SS.mana,
-                        borderRadius: BorderRadius.zero,
-                      ),
-                      child: GameText(
-                        widget.againLabel,
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GameText(
+                        widget.youWon ? 'LA PUERTA SE ABRE' : 'TE QUEDÁS ACÁ',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 32,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF2A1F05),
+                          letterSpacing: 1.2,
+                          color: widget.youWon ? SS.win : SS.ink,
                         ),
                       ),
-                    ),
-                  ),
-                  if (widget.onExit != null)
-                    TextButton(
-                      onPressed: widget.onExit,
-                      child: const GameText('SALIR DE LA SALA'),
-                    ),
-                ],
-              ),
+                      const SizedBox(height: 8),
+                      GameText(
+                          widget.youWon
+                              ? 'Del otro lado, alguien vuelve a repartir.'
+                              : '${widget.winner} recordó primero. La habitación te reconoce.',
+                          textAlign: TextAlign.center,
+                          style: SS.sub),
+                      if (widget.status != null)
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: GameText(widget.status!,
+                              textAlign: TextAlign.center, style: SS.sub),
+                        ),
+                      const SizedBox(height: 26),
+                      GestureDetector(
+                        onTap: widget.onAgain,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 34, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: SS.mana,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          child: GameText(
+                            widget.againLabel,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF2A1F05),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (widget.onExit != null)
+                        TextButton(
+                          onPressed: widget.onExit,
+                          child: const GameText('SALIR DE LA SALA'),
+                        ),
+                    ],
+                  )),
             ),
           ],
         ),
@@ -376,7 +379,7 @@ class SingFlash extends StatelessWidget {
                       children: [
                         GameText(
                           actor,
-                          style: const TextStyle(fontSize: 13, color: SS.mute),
+                          style: const TextStyle(fontSize: 14, color: SS.mute),
                         ),
                         const SizedBox(height: 4),
                         GameText(

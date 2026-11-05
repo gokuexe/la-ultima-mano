@@ -1,5 +1,6 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
 const englishMessages = <String, String>{
+  "JUGAR RECUERDO": "PLAY MEMORY",
   "La puerta no responde. Necesitás un 6 y un 7, en cualquier orden.":
       "The door does not respond. You need a 6 and a 7, in either order.",
   "Usaste 1 lucidez. Elegí tu próximo movimiento.":
