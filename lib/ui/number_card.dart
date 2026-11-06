@@ -50,27 +50,33 @@ class _NumberCardState extends State<NumberCard> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    if (widget.win) _glow.repeat(reverse: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncGlow();
+  }
+
+  void _syncGlow() {
+    if (!widget.win || MediaQuery.disableAnimationsOf(context)) {
+      _glow.stop();
+      _glow.value = 0;
+    } else if (!_glow.isAnimating) {
+      _glow.repeat(reverse: true);
+    }
   }
 
   @override
   void didUpdateWidget(covariant NumberCard old) {
     super.didUpdateWidget(old);
+    final reduced = MediaQuery.disableAnimationsOf(context);
     if (old.value != widget.value) {
       _up = widget.value > old.value;
-      _pulse.forward(from: 0);
+      if (!reduced) _pulse.forward(from: 0);
     }
-    if (old.burnToken != widget.burnToken) {
-      _burn.forward(from: 0);
-    }
-    if (old.win != widget.win) {
-      if (widget.win) {
-        _glow.repeat(reverse: true);
-      } else {
-        _glow.stop();
-        _glow.value = 0;
-      }
-    }
+    if (old.burnToken != widget.burnToken && !reduced) _burn.forward(from: 0);
+    _syncGlow();
   }
 
   @override

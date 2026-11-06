@@ -36,6 +36,17 @@ abstract final class Catalog {
   static String en(String source) => translate(source, 'en');
   static final _rules = <(RegExp, String Function(RegExpMatch))>[
     (
+      RegExp(r'^Mejor victoria: (\d+) turnos$'),
+      (m) => 'Best win: ${m[1]} turns'
+    ),
+    (RegExp(r'^Intentos: (\d+)$'), (m) => 'Attempts: ${m[1]}'),
+    (RegExp(r'^Turnos propios: (\d+)$'), (m) => 'Your turns: ${m[1]}'),
+    (RegExp(r'^Intento (\d+)$'), (m) => 'Attempt ${m[1]}'),
+    (
+      RegExp(r'^Recuperá (\d+) recuerdos o completá la noche (\d+)\.$'),
+      (m) => 'Recover ${m[1]} memories or complete night ${m[2]}.'
+    ),
+    (
       RegExp(r'^ÁLBUM DE RECUERDOS · (\d+)/6$'),
       (m) => 'MEMORY ALBUM · ${m[1]}/6'
     ),

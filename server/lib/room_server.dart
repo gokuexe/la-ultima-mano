@@ -1,3 +1,4 @@
+import 'package:game_core/emotes.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -123,6 +124,7 @@ class RoomServer {
         peer.name = previous.name;
         peer.seat = previous.seat;
         peer.token = previous.token;
+        peer.lastEmote = previous.lastEmote;
         peer.room = room;
         room.peers[peer.seat] = peer;
         previous.room = null;
@@ -202,6 +204,37 @@ class RoomServer {
       if (room.peers.values.any((p) => p.expiry != null)) {
         throw const FormatException(
             'Esperando a que vuelva una persona a la mesa.');
+      }
+      if (action == 'emote') {
+        final id = message['id'];
+        if (room.game == null ||
+            room.game!.winner != null ||
+            id is! String ||
+            !emoteLines.containsKey(id)) {
+          peer.send(
+              {'type': 'emote_error', 'message': 'Reacción no disponible.'});
+          return;
+        }
+        final now = DateTime.now();
+        if (peer.lastEmote != null &&
+            now.difference(peer.lastEmote!) < const Duration(seconds: 6)) {
+          peer.send({
+            'type': 'emote_error',
+            'message': 'Esperá un momento antes de otra reacción.'
+          });
+          return;
+        }
+        peer.lastEmote = now;
+        final packet = {
+          'type': 'emote',
+          'id': id,
+          'seat': peer.seat,
+          'sequence': ++room.emoteSequence
+        };
+        for (final other in room.peers.values) {
+          other.send(packet);
+        }
+        return;
       }
       if (action == 'rematch') {
         if (room.game?.winner == null || room.commandPending) {
@@ -361,6 +394,7 @@ class RoomServer {
         peer.send({
           'type': 'lobby',
           'rulesEdition': room.rules.edition,
+          'features': ['emotes-v1'],
           'code': room.code,
           'seat': peer.seat,
           'mode': room.rules.mode.index,
@@ -384,6 +418,7 @@ class RoomServer {
       peer.send({
         'type': 'state',
         'rulesEdition': game.rules.edition,
+        'features': ['emotes-v1'],
         'mode': game.rules.mode.index,
         'round': room.round,
         'rematchVotes': room.rematchVotes.toList(),
@@ -488,6 +523,7 @@ class _Peer {
   int seat = -1;
   DateTime window = DateTime.now();
   int messages = 0;
+  DateTime? lastEmote;
   _Peer(this.socket);
   void send(Map<String, dynamic> message) {
     if (socket.readyState != WebSocket.open) return;
@@ -506,6 +542,7 @@ class _Room {
   ChoiceRequest? lastChoice;
   int choiceId = 0;
   int round = 1;
+  int emoteSequence = 0;
   final Set<int> rematchVotes = {};
   _Room(this.code, this.rules);
 }

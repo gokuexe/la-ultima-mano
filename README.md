@@ -33,6 +33,38 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## Retos, campaña y habitaciones (0.5.0)
+
+**La mano de hoy** usa una semilla versionada por fecha UTC y un generador
+portable: VM y JavaScript reproducen el mismo reparto inicial. Se juega en
+Clásico/Pulso, sin cuentas, con intentos y mejor victoria medidos en turnos
+propios y guardados en este dispositivo. Abandonar cuenta como intento; no
+registra una victoria. El reparto cambia a las 00:00 UTC. No hay ranking global.
+El resultado se puede copiar o convertir en PNG sin cartas ni solución: Android
+abre el selector de compartir, web descarga y Linux guarda en Descargas.
+
+**Tres noches** encadena una cena con La Viuda (Clásico), un vagón con El Testigo
+(Rápido) y una sala de hospital con El Hueco (Farol). Las condiciones se muestran
+antes de entrar. Solo ganar completa una noche, desbloquea la siguiente y
+conserva su desenlace. El capítulo anterior sigue en Prólogo y práctica;
+si ya estaba completado, se reconoce la primera noche.
+
+**Habitaciones** permite elegir comedor, vagón y hospital, dibujados en pixel
+art local. Se desbloquean con 2/4/6 recuerdos o completando sus noches. Son
+cosméticos; la elección se guarda. La campaña muestra el lugar de cada noche
+sin cambiar tu elección para las partidas libres.
+
+**Reacciones online** ofrece tres frases fijas con un aviso breve y sonido.
+El servidor valida IDs y limita a una cada 6 segundos por asiento, incluso
+tras reconectar. No consumen lucidez, no cambian turnos ni cancelan objetivos.
+La capacidad se anuncia como `emotes-v1`; un cliente nuevo no muestra controles
+si el servidor anterior no la soporta. Los clientes antiguos ignoran los
+paquetes nuevos y conservan sus reglas.
+
+No se modifica el paquete ni la revisión de GameMonetize. Las funciones de
+cuenta siguen sin ser necesarias. No se usan permisos de almacenamiento Android:
+la tarjeta compartida usa un archivo de caché propio con permiso temporal de lectura.
+
 ## Álbum y hábitos de partida (0.4.0)
 
 El menú principal y el resultado dan acceso a un álbum de seis fotografías,

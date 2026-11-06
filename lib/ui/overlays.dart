@@ -213,6 +213,7 @@ class EndOverlay extends StatefulWidget {
   final int pointsEarned;
   final String? memoryTitle;
   final VoidCallback? onAlbum;
+  final VoidCallback? onShare;
   final bool youWon;
   final VoidCallback onAgain;
   final String againLabel;
@@ -227,6 +228,7 @@ class EndOverlay extends StatefulWidget {
     this.pointsEarned = 0,
     this.memoryTitle,
     this.onAlbum,
+    this.onShare,
     required this.youWon,
     required this.onAgain,
     this.againLabel = 'JUGAR OTRA PARTIDA',
@@ -325,6 +327,10 @@ class _EndOverlayState extends State<EndOverlay>
                           onPressed: _actionsReady ? widget.onAlbum : null,
                           child: const GameText('ABRIR ÁLBUM'),
                         ),
+                      if (widget.onShare != null)
+                        TextButton(
+                            onPressed: _actionsReady ? widget.onShare : null,
+                            child: const GameText('COMPARTIR RETO')),
                       const SizedBox(height: 26),
                       const GameText('¿Qué querés hacer ahora?',
                           textAlign: TextAlign.center, style: SS.body),

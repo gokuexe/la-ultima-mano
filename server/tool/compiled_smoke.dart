@@ -54,6 +54,18 @@ Future<void> main(List<String> args) async {
         'host privacy');
     check(g['players'][1]['hand'] != null && g['players'][0]['red'] == null,
         'guest privacy');
+    check((h['features'] as List).contains('emotes-v1'), 'reaction capability');
+    guest.add(jsonEncode({'type': 'emote', 'id': 'watch'}));
+    final reaction = await next(hs, 'emote');
+    check(
+        reaction['seat'] == 1 &&
+            reaction['id'] == 'watch' &&
+            reaction.keys
+                .toSet()
+                .difference({'type', 'seat', 'id', 'sequence'}).isEmpty,
+        'public fixed reaction only');
+    guest.add(jsonEncode({'type': 'emote', 'id': 'door'}));
+    await next(gs, 'emote_error');
     host.add(jsonEncode({'type': 'end'}));
     await next(gs, 'state', (m) => m['turn'] == 1 && m['busy'] == false);
     host.add(jsonEncode({'type': 'leave'}));
@@ -61,7 +73,7 @@ Future<void> main(List<String> args) async {
     await next(gs, 'closed');
     await guest.close();
     stdout.writeln(
-        'Compiled server: two connections, privacy, turn transfer and disconnection OK');
+        'Compiled server: two connections, privacy, reactions/rate limit, turn transfer and disconnection OK');
   } finally {
     await host?.close();
     await guest?.close();
