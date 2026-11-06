@@ -5,6 +5,7 @@ import 'package:la_ultima_mano/engine.dart';
 import 'package:la_ultima_mano/game_config.dart';
 import 'package:la_ultima_mano/theme.dart';
 import 'package:la_ultima_mano/ui/game_screen.dart';
+import 'package:la_ultima_mano/ui/album_screen.dart';
 import 'package:la_ultima_mano/l10n/game_text.dart';
 
 void main() {
@@ -54,10 +55,20 @@ void main() {
     await singing;
     await tester.pump();
     expect(collection.points, 30);
+    expect(collection.memories, hasLength(1));
     game.notifyListeners();
     await tester.pump();
     expect(collection.points, 30);
+    expect(collection.memories, hasLength(1));
     expect(find.text('+30 memory points'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.tap(find.byKey(const ValueKey('result-album')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumScreen), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(game.winner, game.me.name);
+    expect(collection.memories, hasLength(1));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

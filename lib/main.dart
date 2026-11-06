@@ -13,6 +13,7 @@ import 'theme.dart';
 import 'ui/game_screen.dart';
 import 'ui/online_lobby.dart';
 import 'ui/archive_screen.dart';
+import 'ui/album_screen.dart';
 import 'play_preferences.dart';
 import 'portal/portal_ads.dart';
 import 'story_progress.dart';
@@ -211,6 +212,20 @@ class _TitleScreenState extends State<TitleScreen>
                                       'ARCHIVO 067  /  NO CONFIAR EN NADIE',
                                       textAlign: TextAlign.center,
                                       style: SS.sub),
+                                ),
+                                ListenableBuilder(
+                                  listenable: CollectionProgress.instance,
+                                  builder: (context, _) => TextButton.icon(
+                                    key: const ValueKey('open-memory-album'),
+                                    icon:
+                                        const Icon(Icons.auto_stories_outlined),
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const AlbumScreen())),
+                                    label: GameText(
+                                        'ÁLBUM DE RECUERDOS · ${CollectionProgress.instance.memories.length}/6'),
+                                  ),
                                 ),
                                 const Spacer(flex: 3),
                                 GameText('LA ÚLTIMA\nMANO',

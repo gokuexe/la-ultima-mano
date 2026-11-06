@@ -12,6 +12,8 @@ import 'package:la_ultima_mano/engine.dart';
 import 'package:la_ultima_mano/game_config.dart';
 import 'package:la_ultima_mano/collection_progress.dart';
 import 'package:la_ultima_mano/ui/options_screen.dart';
+import 'package:la_ultima_mano/ui/album_screen.dart';
+import 'package:la_ultima_mano/memory_fragments.dart';
 import 'package:la_ultima_mano/ui/game_screen.dart';
 import 'package:la_ultima_mano/ui/pieces.dart';
 
@@ -60,7 +62,7 @@ void main() {
     await tester.pumpWidget(
         RepaintBoundary(key: boundary, child: const LaUltimaManoApp()));
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Terror-menu');
+    await save('Album-menu');
     final game = GameEngine(
         rules: const GameRules.balanced(), humanPlayerIds: const {0, 1, 2, 3});
     game.me.pulse = 3;
@@ -75,11 +77,11 @@ void main() {
         MaterialPageRoute<void>(builder: (_) => GameScreen(session: game))));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Terror-tablero');
+    await save('Album-tablero');
     final proposal = game.humanPlay(0);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await save('Terror-confirmar');
+    await save('Album-confirmar');
     game.cancelChoice();
     await proposal;
     await tester.pump();
@@ -90,21 +92,31 @@ void main() {
         .first;
     await tester.scrollUntilVisible(find.byType(HandCard).first, 180,
         scrollable: outer);
-    await save('Terror-cartas');
+    await save('Album-cartas');
     game.winner = game.me.name;
     game.notifyListeners();
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(milliseconds: 300));
-    await save('Terror-resultado');
+    await save('Album-resultado');
     final nav = Navigator.of(tester.element(find.byType(GameScreen)));
+    CollectionProgress.instance.memories
+        .addAll(memoryFragments.map((m) => m.id));
+    unawaited(nav.push(MaterialPageRoute<void>(
+        builder: (_) => const AlbumScreen(focusId: 'dinner-photo'))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await save('Album-recuerdos');
+    nav.pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     CollectionProgress.instance.points = 100;
     await CollectionProgress.instance.selectFrame('echo');
     unawaited(nav
         .push(MaterialPageRoute<void>(builder: (_) => const OptionsScreen())));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    await save('Terror-coleccion');
+    await save('Album-coleccion');
     await tester.pumpWidget(const SizedBox.shrink());
   });
 }

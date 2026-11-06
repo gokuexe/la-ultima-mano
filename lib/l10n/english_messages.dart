@@ -1,5 +1,8 @@
 // English copy. Spanish source is the stable lookup key; proper names stay unchanged.
+import 'album_messages.dart';
+
 const englishMessages = <String, String>{
+  ...albumMessages,
   'Atmósfera de tensión': 'Tension atmosphere',
   'Latidos suaves, luz cambiante y rivales inquietos. Las reglas no cambian.':
       'Soft heartbeats, changing light and restless rivals. The rules stay the same.',
