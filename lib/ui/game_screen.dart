@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:game_core/emotes.dart';
 import '../l10n/game_text.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,10 @@ import 'options_screen.dart';
 import '../dialogue.dart';
 import '../habit_dialogue.dart';
 import '../memory_fragments.dart';
+import '../daily_challenge.dart';
+import '../campaign.dart';
+import 'daily_share.dart';
+import 'room_backdrop.dart';
 import 'album_screen.dart';
 import '../tension.dart';
 import '../local_stage_hint.dart';
@@ -34,25 +39,40 @@ class GameScreen extends StatefulWidget {
   final GameRules rules;
   final GameEngine? session;
   final MemoryPath? chapterMemory;
+  final DailyChallenge? daily;
+  final int dailyAttempt;
+  final CampaignNight? night;
 
   const GameScreen(
       {super.key,
       this.rules = const GameRules.balanced(),
       this.session,
-      this.chapterMemory});
+      this.chapterMemory,
+      this.daily,
+      this.dailyAttempt = 1,
+      this.night});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
-  late final GameEngine engine =
-      widget.session ?? GameEngine(rules: widget.rules);
+  late final GameEngine engine = widget.session ??
+      GameEngine(
+          rules: widget.night?.rules ?? widget.rules,
+          random: widget.daily == null
+              ? null
+              : ChallengeRandom(widget.daily!.seed));
 
   final List<PlayedEntry> _pile = [];
   int _seq = 0;
   bool _rewarded = false;
   int _earnedPoints = 0;
+  int _ownTurns = 1;
+  Future<void> _resultWrites = Future.value();
+  int _lastEmoteSequence = -1;
+  Map<String, dynamic>? _emote;
+  Timer? _emoteTimer;
   int _rewardGeneration = 0;
   MemoryFragment? _newMemory;
   final HabitDialogue _habits = HabitDialogue();
@@ -73,6 +93,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     engine.confirmHumanPlays = true;
+    if (widget.night != null) {
+      _line = DialogueLine(widget.night!.character, widget.night!.opening);
+    }
     if (widget.chapterMemory != null) {
       _line = DialogueLine(
           'La habitación', ChapterOne.opening(widget.chapterMemory!));
@@ -112,6 +135,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         engine is RemoteGameEngine ? engine as RemoteGameEngine : null;
     if (remote != null && remote.round != _round) {
       _round = remote.round;
+      _emoteTimer?.cancel();
+      _emote = null;
       _rewarded = false;
       _earnedPoints = 0;
       _newMemory = null;
@@ -127,6 +152,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _rewarded = true;
       final won = engine.winner == engine.me.name;
       _earnedPoints = won ? 30 : 10;
+      _resultWrites = Future.wait<void>([
+        if (widget.daily != null)
+          DailyProgress.instance.finish(widget.daily!.day, widget.dailyAttempt,
+              won: won, turns: _ownTurns),
+        if (widget.night != null && won)
+          CampaignProgress.instance.complete(widget.night!.id),
+      ]).then((_) {});
       final generation = _rewardGeneration;
       unawaited(CollectionProgress.instance.awardMatch(won: won).then((memory) {
         if (mounted &&
@@ -164,6 +196,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (habit != null) {
       _line = habit;
       _deviceTextVisible = false;
+    }
+    if (remote?.lastEmote != null &&
+        remote!.lastEmote!['sequence'] != _lastEmoteSequence) {
+      _lastEmoteSequence = remote.lastEmote!['sequence'] as int;
+      _emote = remote.lastEmote;
+      Sfx.i.play('reaction', volume: .25);
+      _emoteTimer?.cancel();
+      _emoteTimer = Timer(const Duration(milliseconds: 3200), () {
+        if (mounted) setState(() => _emote = null);
+      });
     }
     if (mounted) setState(() {});
   }
@@ -264,6 +306,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         break;
       case FxKind.turn:
         if (fx.playerId == 0) {
+          _ownTurns++;
           Sfx.i.play('turn', volume: 0.5);
           Sfx.i.play('mana', volume: 0.35);
         }
@@ -279,6 +322,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     CollectionProgress.instance.removeListener(_collectionChanged);
     engine.onFx = null;
     engine.dispose();
+    _emoteTimer?.cancel();
     _singFlash.dispose();
     _handScroll.dispose();
     super.dispose();
@@ -309,6 +353,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Future<void> _leaveTable({bool home = false, bool? result}) async {
     if (_leaving) return;
     _leaving = true;
+    await _resultWrites;
     if (home &&
         widget.chapterMemory != null &&
         engine.winner == engine.me.name) {
@@ -377,7 +422,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _restarting = false;
   Future<void> _restart() async {
     if (_restarting || engine.winner == null) return;
-    if (widget.chapterMemory != null) {
+    if (widget.daily != null) {
+      await _leaveTable();
+      return;
+    }
+    if (widget.night != null || widget.chapterMemory != null) {
       await _leaveTable(result: engine.winner == engine.me.name);
       return;
     }
@@ -415,52 +464,87 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         child: Scaffold(
           body: Container(
             decoration: SS.tableBg(),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _table(me, myTurn)),
-                  Positioned.fill(
-                      child: TensionAtmosphere(
-                    level: engine.paused ||
-                            engine.winner != null ||
-                            !PlayPreferences.instance.tension
-                        ? 0
-                        : _tension.level,
-                  )),
-                  SingFlash(anim: _singFlash, actor: _singActor),
-                  if (engine.choice != null)
-                    ChoiceOverlay(
-                      key: ValueKey(engine.choice),
-                      request: engine.choice!,
-                      onPick: engine.answer,
-                    ),
-                  if (engine.winner != null)
-                    EndOverlay(
-                      winner: engine.winner!,
-                      pointsEarned: _earnedPoints,
-                      memoryTitle: _newMemory?.title,
-                      onAlbum: _openAlbum,
-                      youWon: engine.winner == engine.me.name,
-                      onAgain: _restart,
-                      againLabel: widget.chapterMemory != null
-                          ? 'LEER DESENLACE'
-                          : engine is RemoteGameEngine
-                              ? (engine as RemoteGameEngine).votedRematch
-                                  ? 'Esperando al resto…'
-                                  : 'QUIERO REVANCHA'
-                              : 'JUGAR OTRA PARTIDA',
-                      againEnabled: !_restarting &&
-                          (engine is! RemoteGameEngine ||
-                              !(engine as RemoteGameEngine).votedRematch),
-                      onExit: () => _leaveTable(home: true),
-                      status: engine is RemoteGameEngine
-                          ? engine.statusMessage ??
-                              'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
-                          : null,
-                    ),
-                ],
+            child: Stack(children: [
+              Positioned.fill(child: RoomBackdrop(room: widget.night?.room)),
+              SafeArea(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _table(me, myTurn)),
+                    Positioned.fill(
+                        child: TensionAtmosphere(
+                      level: engine.paused ||
+                              engine.winner != null ||
+                              !PlayPreferences.instance.tension
+                          ? 0
+                          : _tension.level,
+                    )),
+                    SingFlash(anim: _singFlash, actor: _singActor),
+                    if (_emote != null && engine.winner == null)
+                      Positioned(
+                          top: 8,
+                          left: 12,
+                          right: 12,
+                          child: IgnorePointer(
+                              child: Material(
+                                  color: SS.surfaceUp,
+                                  child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            GameText(_emote!['actor'] as String,
+                                                translate: false,
+                                                style: SS.sub),
+                                            GameText(emoteLines[_emote!['id']]!,
+                                                textAlign: TextAlign.center,
+                                                style: SS.body),
+                                          ]))))),
+                    if (engine.choice != null)
+                      ChoiceOverlay(
+                        key: ValueKey(engine.choice),
+                        request: engine.choice!,
+                        onPick: engine.answer,
+                      ),
+                    if (engine.winner != null)
+                      EndOverlay(
+                        winner: engine.winner!,
+                        pointsEarned: _earnedPoints,
+                        memoryTitle: _newMemory?.title,
+                        onAlbum: _openAlbum,
+                        onShare: widget.daily == null
+                            ? null
+                            : () => showDialog<void>(
+                                context: context,
+                                builder: (_) => DailyShareDialog(
+                                    day: widget.daily!.day,
+                                    turns: _ownTurns,
+                                    attempt: widget.dailyAttempt,
+                                    won: engine.winner == engine.me.name)),
+                        youWon: engine.winner == engine.me.name,
+                        onAgain: _restart,
+                        againLabel: widget.daily != null
+                            ? 'VOLVER AL RETO'
+                            : (widget.night != null ||
+                                    widget.chapterMemory != null)
+                                ? 'LEER DESENLACE'
+                                : engine is RemoteGameEngine
+                                    ? (engine as RemoteGameEngine).votedRematch
+                                        ? 'Esperando al resto…'
+                                        : 'QUIERO REVANCHA'
+                                    : 'JUGAR OTRA PARTIDA',
+                        againEnabled: !_restarting &&
+                            (engine is! RemoteGameEngine ||
+                                !(engine as RemoteGameEngine).votedRematch),
+                        onExit: () => _leaveTable(home: true),
+                        status: engine is RemoteGameEngine
+                            ? engine.statusMessage ??
+                                'Revancha: ${(engine as RemoteGameEngine).rematchCount}/${(engine as RemoteGameEngine).humanCount}'
+                            : null,
+                      ),
+                  ],
+                ),
               ),
-            ),
+            ]),
           ),
         ));
   }
@@ -480,6 +564,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 children: [
                   _header(),
                   const SizedBox(height: 12),
+                  if (engine is RemoteGameEngine &&
+                      (engine as RemoteGameEngine).emotesAvailable)
+                    Wrap(spacing: 4, children: [
+                      for (final id in emoteLines.keys)
+                        TextButton(
+                            onPressed: (engine as RemoteGameEngine).canEmote
+                                ? () =>
+                                    (engine as RemoteGameEngine).sendEmote(id)
+                                : null,
+                            child: GameText(emoteLines[id]!,
+                                style: const TextStyle(fontSize: 14))),
+                    ]),
                   _rivals(),
                   const SizedBox(height: 12),
                   _myCards(me),

@@ -1,3 +1,4 @@
+import 'package:game_core/emotes.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -110,6 +111,11 @@ class OnlineConnection extends ChangeNotifier {
                   ? GameRules.balanced(GameMode.values[data['mode'] as int])
                   : GameRules(GameMode.values[data['mode'] as int]));
           game!.apply(data);
+        case 'emote':
+          error = null;
+          game?.receiveEmote(data);
+        case 'emote_error':
+          error = data['message'] as String;
         case 'fx':
           game?.receiveFx(data);
         case 'error':
@@ -201,6 +207,51 @@ class RemoteGameEngine extends GameEngine {
   int seat = 0;
   int round = 1;
   int rematchCount = 0;
+  bool emotesAvailable = false;
+  DateTime? _lastEmoteSent;
+  Timer? _emoteCooldown;
+  Map<String, dynamic>? lastEmote;
+  int _emoteSequence = -1;
+  bool get canEmote =>
+      emotesAvailable &&
+      connection.connected &&
+      winner == null &&
+      statusMessage == null &&
+      (_lastEmoteSent == null ||
+          DateTime.now().difference(_lastEmoteSent!) >=
+              const Duration(seconds: 6));
+  bool sendEmote(String id) {
+    if (!canEmote || !emoteLines.containsKey(id)) return false;
+    _lastEmoteSent = DateTime.now();
+    connection.send({'type': 'emote', 'id': id});
+    _emoteCooldown?.cancel();
+    _emoteCooldown = Timer(const Duration(seconds: 6), () {
+      if (!_disposed) notifyListeners();
+    });
+    notifyListeners();
+    return true;
+  }
+
+  void receiveEmote(Map<String, dynamic> data) {
+    final id = data['id'], rawSeat = data['seat'], sequence = data['sequence'];
+    if (id is! String ||
+        !emoteLines.containsKey(id) ||
+        rawSeat is! int ||
+        rawSeat < 0 ||
+        rawSeat > 3 ||
+        sequence is! int ||
+        sequence <= _emoteSequence) {
+      return;
+    }
+    _emoteSequence = sequence;
+    lastEmote = {
+      'id': id,
+      'actor': players[_local(rawSeat)].name,
+      'sequence': sequence
+    };
+    notifyListeners();
+  }
+
   int humanCount = 0;
   bool votedRematch = false;
   void requestRematch() {
@@ -218,6 +269,7 @@ class RemoteGameEngine extends GameEngine {
 
   void apply(Map<String, dynamic> data) {
     if (_disposed) return;
+    emotesAvailable = (data['features'] as List? ?? []).contains('emotes-v1');
     seat = data['seat'] as int;
     round = data['round'] as int? ?? 1;
     final votes = data['rematchVotes'] as List? ?? [];
@@ -413,6 +465,7 @@ class RemoteGameEngine extends GameEngine {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _emoteCooldown?.cancel();
     super.dispose();
   }
 }

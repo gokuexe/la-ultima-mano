@@ -18,6 +18,12 @@ import 'play_preferences.dart';
 import 'portal/portal_ads.dart';
 import 'story_progress.dart';
 import 'collection_progress.dart';
+import 'daily_challenge.dart';
+import 'campaign.dart';
+import 'rooms.dart';
+import 'ui/daily_screen.dart';
+import 'ui/campaign_screen.dart';
+import 'ui/rooms_screen.dart';
 import 'platform/local_store.dart';
 import 'ui/chapter_screen.dart';
 import 'ui/options_screen.dart';
@@ -29,6 +35,13 @@ Future<void> main() async {
   CollectionProgress.instance =
       CollectionProgress(store: createStore('collection'));
   await CollectionProgress.instance.load();
+  DailyProgress.instance = DailyProgress(store: createStore('daily'));
+  await DailyProgress.instance.load();
+  CampaignProgress.instance = CampaignProgress(store: createStore('campaign'));
+  await CampaignProgress.instance
+      .load(firstChapterComplete: StoryProgress.instance.chapterComplete);
+  RoomProgress.instance = RoomProgress(store: createStore('rooms'));
+  await RoomProgress.instance.load();
   PortalAds.instance.initialize();
   if (defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS) {
@@ -193,6 +206,19 @@ class _TitleScreenState extends State<TitleScreen>
                                       CrossAxisAlignment.stretch,
                                   children: [
                                 const LanguagePicker(),
+                                FilledButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const DailyScreen())),
+                                    child: const GameText('LA MANO DE HOY')),
+                                OutlinedButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const CampaignScreen())),
+                                    child: const GameText(
+                                        'TRES NOCHES · HISTORIA')),
                                 const GameText('EDICIÓN PULSO',
                                     style: SS.sub, textAlign: TextAlign.center),
                                 OutlinedButton(
@@ -200,8 +226,7 @@ class _TitleScreenState extends State<TitleScreen>
                                       MaterialPageRoute<void>(
                                           builder: (_) =>
                                               const ChapterScreen())),
-                                  child:
-                                      const GameText('HISTORIA · CAPÍTULO 01'),
+                                  child: const GameText('PRÓLOGO Y PRÁCTICA'),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.of(context).push(
@@ -345,6 +370,12 @@ class _TitleScreenState extends State<TitleScreen>
                                                 const OptionsScreen())),
                                     child: const GameText(
                                         'AJUSTES Y GUÍA DE CARTAS')),
+                                TextButton(
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const RoomsScreen())),
+                                    child: const GameText('HABITACIONES')),
                                 const SizedBox(height: 10),
                                 const GameText(
                                     'Tres desconocidos. Una salida. Ningún reloj.',

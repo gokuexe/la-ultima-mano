@@ -1,7 +1,7 @@
 name: la_ultima_mano
 description: La Última Mano - juego de cartas de terror psicológico, recuerdos y paranoia.
 publish_to: 'none'
-version: 0.4.0+7
+version: 0.5.0+8
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
