@@ -211,6 +211,8 @@ class _OptionButton extends StatelessWidget {
 class EndOverlay extends StatefulWidget {
   final String winner;
   final int pointsEarned;
+  final String? memoryTitle;
+  final VoidCallback? onAlbum;
   final bool youWon;
   final VoidCallback onAgain;
   final String againLabel;
@@ -223,6 +225,8 @@ class EndOverlay extends StatefulWidget {
     super.key,
     required this.winner,
     this.pointsEarned = 0,
+    this.memoryTitle,
+    this.onAlbum,
     required this.youWon,
     required this.onAgain,
     this.againLabel = 'JUGAR OTRA PARTIDA',
@@ -309,6 +313,18 @@ class _EndOverlayState extends State<EndOverlay>
                             child: GameText(
                                 '+${widget.pointsEarned} puntos de recuerdo',
                                 style: SS.body)),
+                      if (widget.memoryTitle != null) ...[
+                        const SizedBox(height: 12),
+                        const GameText('RECUERDO ENCONTRADO', style: SS.sub),
+                        GameText(widget.memoryTitle!,
+                            textAlign: TextAlign.center, style: SS.body),
+                      ],
+                      if (widget.onAlbum != null)
+                        TextButton(
+                          key: const ValueKey('result-album'),
+                          onPressed: _actionsReady ? widget.onAlbum : null,
+                          child: const GameText('ABRIR ÁLBUM'),
+                        ),
                       const SizedBox(height: 26),
                       const GameText('¿Qué querés hacer ahora?',
                           textAlign: TextAlign.center, style: SS.body),

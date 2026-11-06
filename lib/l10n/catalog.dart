@@ -36,6 +36,15 @@ abstract final class Catalog {
   static String en(String source) => translate(source, 'en');
   static final _rules = <(RegExp, String Function(RegExpMatch))>[
     (
+      RegExp(r'^ÁLBUM DE RECUERDOS · (\d+)/6$'),
+      (m) => 'MEMORY ALBUM · ${m[1]}/6'
+    ),
+    (
+      RegExp(r'^Recuerdos recuperados: (\d+)/6$'),
+      (m) => 'Recovered memories: ${m[1]}/6'
+    ),
+    (RegExp(r'^FRAGMENTO (\d+)$'), (m) => 'FRAGMENT ${m[1]}'),
+    (
       RegExp(
           r'^Son las (\d{2}:\d{2}) en tu reloj\. Acá todavía es la misma noche\.$'),
       (m) => 'Your clock says ${m[1]}. It is still the same night here.'

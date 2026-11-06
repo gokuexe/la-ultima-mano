@@ -33,6 +33,22 @@ Distribuí el directorio `bundle` completo: incluye ejecutable, datos y bibliote
 El workflow Linux ejecuta pruebas y compila con permisos de lectura. No publica
 releases automáticamente.
 
+## Álbum y hábitos de partida (0.4.0)
+
+El menú principal y el resultado dan acceso a un álbum de seis fotografías,
+notas y objetos con ilustraciones pixel art. Cada partida completada revela
+una pieza que no tengas: ganar y perder priorizan pistas distintas, y después
+completan los huecos. Abandonar no revela nada. Las piezas y el cierre del álbum
+se guardan localmente junto a tus puntos y marcos; no dan poderes ni cambian las
+reglas. Los perfiles anteriores conservan sus puntos y empiezan el álbum vacío.
+
+Los rivales reaccionan al segundo Insomnio, a tres elecciones de carta canceladas
+y a una salida rechazada. Estas señales usan acciones de la partida actual,
+con un máximo de tres frases y un intervalo de 12 segundos; no forman un perfil
+persistente. Los momentos de tensión tienen prioridad. Online, la voz es la
+habitación y nunca se atribuye un diálogo a una persona real. Desactivar la
+atmósfera también desactiva estas reacciones. Español e inglés incluidos.
+
 ## La habitación reacciona (0.3.0)
 
 Cuando tus recuerdos quedan a un ajuste de la salida, los retratos de los
